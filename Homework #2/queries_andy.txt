@@ -1,0 +1,8 @@
+company AND computer
+xd
+NOT xd 
+bill OR Gates AND (vista OR XP) AND NOT mac
+china
+NOT china
+bill
+mac
