@@ -126,7 +126,9 @@ def build_index(in_dir, out_dict, out_postings):
             # print(list(dictionary.items())[:4])
 
         docLengths[docID] = get_docL_from_weighted_tf(docID, dictionary)
-        calculate_norm_w(docID, dictionary, docLengths)
+        add_norm_w_and_df(docID, dictionary, docLengths)
+
+    # TODO: might need add docL, depending on what Jin says
 
     # will  write into this file directly and only once
     dict_file = open(out_dict, "w+")
