@@ -10,56 +10,8 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem import PorterStemmer
 
 
-class Node:
-    def __init__(self, docID):
-        self.docID = docID # int
-        self.skip = None
-        self.next = None
-
-    def set_next(self, node):
-        self.next = node
-
-    def set_skip(self, node):
-        self.skip = node
-
-    def get_next(self):
-        return self.next
-
-    def get_skip(self):
-        if (self.has_skip):
-            return self.skip
-
-    def has_next(self):
-        return self.next != None and type(self.next) == Node
-
-    def has_skip(self):
-        return self.skip != None and self.skip != self
-
-
 def usage():
     print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
-
-def setup_skip_pointers(dictionary, term):
-    docs = dictionary[term] # nodes
-    docs.sort(key=lambda x: x.docID)
-
-    doc_freq = len(docs)
-    sqrt_L = math.floor(math.sqrt(doc_freq))
-
-    for i in range(doc_freq):
-        node = docs[i]
-        if i % sqrt_L == 0: # only for multiples of sqrt_L
-            skip_to = docs[min(i+sqrt_L, doc_freq-1)]
-            if skip_to != node:
-                node.set_skip(skip_to)
-
-        # set next
-        if i == doc_freq-1:
-            return # only last one has no next
-        next = docs[i+1]
-        node.set_next(next)
-
-    dictionary[term] = docs
 
 def build_index(in_dir, out_dict, out_postings):
     """
@@ -79,14 +31,16 @@ def build_index(in_dir, out_dict, out_postings):
 
     """
     dictionary = {
-    term1: node(docID1), node(docID2), ...
+    term1: 
+        {docID1: [term_freq1, docL1]
+         docID2: [term_freq2, docL2]
+         ...
+        }
     ...
     }
     """
 
-    for docID in files:
-        node = Node(docID)
-
+    for docID in files: # alr int
         file = open(os.path.join(dir, str(docID)))
         sentences = sent_tokenize(file.read())
         words_nested = map(lambda x: word_tokenize(x), sentences)
@@ -100,33 +54,33 @@ def build_index(in_dir, out_dict, out_postings):
 
             ps = PorterStemmer()
             word = ps.stem(word) # stemming
-            word = word.lower() # case folding
+            term = word.lower() # case folding
 
-            if word in dictionary:
-                docs = dictionary[word] # list of int docIDs
-                if node not in docs:
-                    docs.append(node)
+            if term in dictionary:
+                docs = dictionary[term] # list of int docIDs
+                if docID not in docs:
+                    docs[docID] = [1] # first instance of this term in this doc
+                else:
+                    docs[docID][0] += 1 # increment tf by 1
             else:
-                dictionary[word] = [node]
+                dictionary[term] = {docID: [1]} # first instance of term in any doc
 
             # print(list(dictionary.items())[:4])
+
+        # calculating tf:
+        calculate_weighted_tf(docID)
 
     # store in dict: term, docfreq, tell() in postings
     # will  write into this file directly and only once
     dict_file = open(out_dict, "w+")
     posting = open(out_postings, "wb+")
 
-    # save a list of all file numbers to facilitate NOT search
-    dict_file.write(" ".join(map(lambda x: str(x), files)))
-    dict_file.write("\n")
-
-    # print("limit: " + str(sys.getrecursionlimit()))
     new_limit = 30000
     sys.setrecursionlimit(new_limit)
 
     for term in dictionary:
-        # sort posting and set up skip pointers first
-        setup_skip_pointers(dictionary, term)
+
+        # TODO: process before dumping
 
         pointer = posting.tell()
         # writing into postings.txt
