@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+from __future__ import division
+
 import re
 import sys
 import getopt
@@ -11,7 +13,59 @@ from nltk.stem import PorterStemmer
 
 
 def usage():
-    print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
+    print("usage: " + sys.argv[0] + " -i directory-of-documents -d dic-file -p postings-file")
+
+# add weighted_tf
+def get_docL_from_weighted_tf(docID, dictionary):
+    pre_docL_sum = 0
+    for term in dictionary:
+        docs = dictionary[term]
+        if docID in docs:
+            vals = docs[docID]
+            tf = vals[0]
+            weighted_tf = 1 + math.log(tf, 10)
+            vals.append(weighted_tf)
+
+            # calculating docL
+            pre_docL_sum += weighted_tf**2
+
+    if pre_docL_sum:
+        docL = math.sqrt(pre_docL_sum)
+        return docL
+    else:
+        print("docL should not be 0!")
+        return 0
+
+def add_norm_w_and_df(docID, dictionary, docLengths):
+    docL = docLengths[docID]
+    for term in dictionary:
+        docs = dictionary[term]
+        df = len(docs)
+        if docID in docs:
+            tf, weighted_tf = docs[docID]
+            norm_w = weighted_tf / docL
+            docs[docID].append(norm_w)
+        docs[docID].append(df)
+
+"""
+1) re-format dict
+2) sort the postings for every term and take top 10 norm_w
+"""
+def process_dict(dictionary):
+    new_dict = {}
+    for term in dictionary:
+        doc_info = dictionary[term]
+        lst = []
+        for docID in doc_info:
+            term_freq, weighted_tf, norm_w, df = doc_info[docID]
+            t = (docID, term_freq, norm_w)
+            lst.append(t)
+
+        ranked_norm_w = list(set(map(lambda x:x[2], lst))) # get a list of all norm_w
+        ranked_norm_w.sort(reverse=True) # rank them
+        new_dict[term] = list(filter(lambda x: x[2] >= ranked_norm_w[9])) # get those with norm_w >= 10th highest norm_w
+
+    return new_dict
 
 def build_index(in_dir, out_dict, out_postings):
     """
@@ -27,7 +81,8 @@ def build_index(in_dir, out_dict, out_postings):
     files = list(map(lambda x: int(x), files)) # list of int
     files.sort()
 
-    dictionary = {} # dict of term: nodes
+    dictionary = {}
+    docLengths = []
 
     """
     dictionary = {
@@ -41,6 +96,8 @@ def build_index(in_dir, out_dict, out_postings):
     """
 
     for docID in files: # alr int
+        docLengths.append(0) # initialise
+
         file = open(os.path.join(dir, str(docID)))
         sentences = sent_tokenize(file.read())
         words_nested = map(lambda x: word_tokenize(x), sentences)
@@ -56,6 +113,7 @@ def build_index(in_dir, out_dict, out_postings):
             word = ps.stem(word) # stemming
             term = word.lower() # case folding
 
+            # add tf
             if term in dictionary:
                 docs = dictionary[term] # list of int docIDs
                 if docID not in docs:
@@ -67,10 +125,9 @@ def build_index(in_dir, out_dict, out_postings):
 
             # print(list(dictionary.items())[:4])
 
-        # calculating tf:
-        calculate_weighted_tf(docID)
+        docLengths[docID] = get_docL_from_weighted_tf(docID, dictionary)
+        calculate_norm_w(docID, dictionary, docLengths)
 
-    # store in dict: term, docfreq, tell() in postings
     # will  write into this file directly and only once
     dict_file = open(out_dict, "w+")
     posting = open(out_postings, "wb+")
@@ -78,16 +135,15 @@ def build_index(in_dir, out_dict, out_postings):
     new_limit = 30000
     sys.setrecursionlimit(new_limit)
 
-    for term in dictionary:
+    processed_dict = process_dict(dictionary)
 
-        # TODO: process before dumping
-
+    for term in processed_dict:
         pointer = posting.tell()
         # writing into postings.txt
-        docs = dictionary[term]
+        docs = processed_dict[term]
         pickle.dump(docs, posting)
 
-        # writing into dictionary.txt
+        # writing into dic.txt
         # stores term, doc_freq, pointer
         to_dict = " ".join((term, str(len(docs)), str(pointer)))
         dict_file.write(to_dict + "\n")
