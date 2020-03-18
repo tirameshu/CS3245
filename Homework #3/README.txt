@@ -8,20 +8,21 @@ this assignment.
 == General Notes about this assignment ==
 
 Indexing:
-- after processing each word from each file into terms, each term is added to the
-dictionary temporarily stored in `index.py`.
+- after processing each word from each file into terms, each term is added to the dictionary
+temporarily stored in `index.py`. Term frequency (term_freq) increments by 1 every time the same word
+is encountered again in the same doc.
 - the final dictionary format will be as follows:
 dictionary = {term: {docID: [term_freq, weighted_term_freq, norm_w, df]}}
-- term_freq increments by 1 every time the same word is encountered again in the same doc.
-- idf is not required for document.
-- weighted_term_freq is calculated at the end of each doc. In the same function,
-docLength is also calculated.
+- idf is not required for document, but needed for query.
+- weighted_term_freq is calculated at the end of each doc. In the same function, docLength is also calculated.
 - normalised_weight (norm_w) is then calculated for each term, based on weighted_term_freq and docLength.
-df is added here as well.
-- Only docs of top 10 norm_w of each term will be sent to postings.txt to be used in searching.
-(this means there may be > 10 docs loaded from postings, because some docs might have same weight)
-- dictionary is processed and re-formatted for each term, and dumped into postings.txt, together with
-the docLength of each doc.
+Document frequency (df) is added here as well, but directly to the dictionary `to_dict` that will be dumped into dictionary.txt.
+-- to_dict will be in the following format:
+to_dict = {term: [df, pointer_to_posting, pointer_to_champion]}
+- the docs of top 10 norm_w of each term will be dumped in champion_list.txt to be used in searching.
+(there may be > 10 docs for each term, because some docs might have same weight)
+- dictionary is processed and re-formatted for each term, and all postings are dumped into postings.txt
+- the docLength dictionary, together with to_dict, are dumped into dictionary.txt.
 
 Searching:
 - for every query term, top 10 of its posting is loaded from postings.txt --> dictionary re-constructed
@@ -36,12 +37,17 @@ search.py:
 
 dictionary.txt:
 - storage format:
-{term: [df, pointer_to_posting]}
+docLength[N]
+{term: [df, pointer_to_posting, pointer_to_champion]}
 
 postings.txt:
 [(docID1_1, term_freq1, norm_w1), (docID1_2, term_freq2, norm_w2),...]
 [(docID2_1, term_freq1, norm_w1), (docID2_2, term_freq2, norm_w2),...]
 ...
+
+champion_list.txt (only up to top 10 norm_w):
+[(docID1_1, term_freq1, norm_w1), (docID1_2, term_freq2, norm_w2),...]
+[(docID2_1, term_freq1, norm_w1), (docID2_2, term_freq2, norm_w2),...]
 
 == Statement of individual work ==
 
