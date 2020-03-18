@@ -18,16 +18,16 @@ dictionary = {term: {docID: [term_freq, weighted_term_freq, norm_w, df]}}
 - normalised_weight (norm_w) is then calculated for each term, based on weighted_term_freq and docLength.
 Document frequency (df) is added here as well, but directly to the dictionary `to_dict` that will be dumped into dictionary.txt.
 -- to_dict will be in the following format:
-to_dict = {term: [df, pointer_to_posting, pointer_to_champion]}
-- the docs of top 10 norm_w of each term will be dumped in champion_list.txt to be used in searching.
-(there may be > 10 docs for each term, because some docs might have same weight)
+to_dict = {term: [df, pointer_to_posting]}
 - dictionary is processed and re-formatted for each term, and all postings are dumped into postings.txt
 - the docLength dictionary, together with to_dict, are dumped into dictionary.txt.
 
 Searching:
-- for every query term, top 10 of its posting is loaded from postings.txt --> dictionary re-constructed
-but only for terms queried.
-- df of query term can be obtained from (len(dictionary[term]))
+- for every query term, its w_tq is calculated and its posting is fetched.
+-
+
+top 20 of its posting is loaded from postings.txt --> dictionary for relevant_postings
+re-constructed, but only for terms queried.
 
 == Files included with this submission ==
 
@@ -38,16 +38,16 @@ search.py:
 dictionary.txt:
 - storage format:
 docLength[N]
-{term: [df, pointer_to_posting, pointer_to_champion]}
+{
+term1: [df1, pointer_to_posting1]
+term2: [df2, pointer_to_posting2]
+...
+}
 
 postings.txt:
 [(docID1_1, term_freq1, norm_w1), (docID1_2, term_freq2, norm_w2),...]
 [(docID2_1, term_freq1, norm_w1), (docID2_2, term_freq2, norm_w2),...]
 ...
-
-champion_list.txt (only up to top 10 norm_w):
-[(docID1_1, term_freq1, norm_w1), (docID1_2, term_freq2, norm_w2),...]
-[(docID2_1, term_freq1, norm_w1), (docID2_2, term_freq2, norm_w2),...]
 
 == Statement of individual work ==
 

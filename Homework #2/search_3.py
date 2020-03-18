@@ -8,7 +8,7 @@ import pickle
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem import PorterStemmer
 
-dictionary = {}
+score = {}
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
@@ -26,23 +26,22 @@ def process_query_term(query_term):
     return ""
 
 """
-Only look through the dict file once to get all lists of the query terms
+Gets postings list for all terms queried
+Checks whether term has already been queried --> don't update existing terms for subsequent queries
+If queried term is not in dictionary, it is ignored as it does not affect the score
 """
-def get_all_relevant_lists(query_terms, dict, postings):
-    # reset dict first
-    dict.seek(0)
-
+def get_all_relevant_lists(query_terms, dictionary, postings, relevant_postings):
     processed_query_terms = list(map(lambda x: process_query_term(x), query_terms))
 
-    # search for all query terms in dictionary
-    # add to result as long as a desired term is encountered to reduce looping times
-    for line in dict:
-        elements = line.split(" ")
-        term = elements[0]
-        if term in processed_query_terms and term not in dictionary: # don't update repeatedly
-            pointer = int(elements[2])
-            postings.seek(pointer)
-            docs = pickle.load(postings) # list of nodes
+    for term in processed_query_terms:
+        if term not in relevant_postings and term in dictionary:
+            df, postings_pointer = dictionary[term]
+
+            postings.seek(postings_pointer)
+            all_postings = pickle.load(postings)
+
+            # champions.seek(champion_pointer)
+            # champion_list = pickle.load(champions)
 
             docs.sort(key=lambda x: x.docID) # sort from the start
 
@@ -62,10 +61,14 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
     dict = open(dict_file, "rb")
     postings = open(postings_file, "rb")
+    # champions = open("champion_list.txt", "rb")
     queries = open(queries_file, "r")
     results = open(results_file, "a+")
 
     docLengths = pickle.load(dict)
+    dictionary = pickle.load(dict)
+
+    relevant_postings = {}
 
     """
     Assumes that query individual words joined by logic operators, ie no bill gates AND vista
@@ -75,8 +78,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         sentence = sent_tokenize(query_line)
         query_terms = word_tokenize(sentence[0])
 
-        # fill up dictionary first
-        get_all_relevant_lists(query_terms, dict, postings)
+        get_all_relevant_lists(query_terms, dictionary, postings, relevant_postings)
 
         if len(query_terms) == 1: # non-logical searches
             result = indiv_search(query_terms[0])

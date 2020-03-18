@@ -52,7 +52,7 @@ def add_norm_w_and_df(docID, dictionary, docLengths, to_dict):
 2) sort the postings for every term and take top 10 norm_w
 """
 def process_dict(dictionary):
-    champion_dict = {}
+    # champion_dict = {}
     posting_dict = {}
     for term in dictionary:
         doc_info = dictionary[term]
@@ -64,11 +64,11 @@ def process_dict(dictionary):
 
         posting_dict[term] = lst # all postings
 
-        ranked_norm_w = list(set(map(lambda x:x[2], lst))) # get a list of all norm_w
-        ranked_norm_w.sort(reverse=True) # rank them
-        champion_dict[term] = list(filter(lambda x: x[2] >= ranked_norm_w[9], lst)) # get those with norm_w >= 10th highest norm_w
+        # ranked_norm_w = list(set(map(lambda x:x[2], lst))) # get a list of all norm_w
+        # ranked_norm_w.sort(reverse=True) # rank them
+        # champion_dict[term] = list(filter(lambda x: x[2] >= ranked_norm_w[max(len(ranked_norm_w), 20)], lst)) # get those with norm_w >= 20th highest norm_w
 
-    return posting_dict, champion_dict
+    return posting_dict
 
 def write_to_output(file, output_dict, to_dict):
     for term in output_dict:
@@ -115,8 +115,8 @@ def build_index(in_dir, out_dict, out_postings):
     }
     
     to_dict = {
-    term1: {[df1, pointer_to_posting1, pointer_to_champion1]}
-    term2: {[df2, pointer_to_posting2, pointer_to_champion2]}
+    term1: {[df1, pointer_to_posting1]}
+    term2: {[df2, pointer_to_posting2]}
     ...
     }
     """
@@ -163,22 +163,20 @@ def build_index(in_dir, out_dict, out_postings):
 
     dict_file = open(out_dict, "wb+")
     posting = open(out_postings, "wb+")
-    champion_file = open("champion_list.txt", "wb+")
+    # champion_file = open("champion_list.txt", "wb+")
 
     new_limit = 30000
     sys.setrecursionlimit(new_limit)
 
     """
-    reformat dictionary to 2 output formats:
-    - normal posting
-    - champion list
+    reformat dictionary to output format for posting
     
     to_dict is updated with the df of each term
     """
-    posting_dict, champion_dict = process_dict(dictionary)
+    posting_dict = process_dict(dictionary)
 
     write_to_output(posting, posting_dict, to_dict)
-    write_to_output(champion_file, champion_dict, to_dict)
+    # write_to_output(champion_file, champion_dict, to_dict)
     write_to_dict(dict_file, docLengths, to_dict)
 
 input_directory = output_file_dictionary = output_file_postings = None
