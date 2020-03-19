@@ -7,6 +7,17 @@ this assignment.
 
 == General Notes about this assignment ==
 
+Assumptions:
+1) nltk is in same directory as script
+
+Active Decisions:
+- to not use champion list as it is pointless; final score for any document does not depend on whether the document
+has a higher weight for any individual term, but a number of them. A document containing more query terms
+but small weights for them might have higher score than a document with high weights for only a few terms.
+Tldr cannot determine, must calculate and then rank.
+- to not only consider posting with > k number of query terms: need do stopword removal for query, merging takes time,
+and involves going through all the postings anyway, might as well just calculate directly. Also hard to implement.
+
 Indexing:
 - after processing each word from each file into terms, each term is added to the dictionary
 temporarily stored in `index.py`. Term frequency (term_freq) increments by 1 every time the same word
@@ -19,15 +30,28 @@ dictionary = {term: {docID: [term_freq, weighted_term_freq, norm_w, df]}}
 Document frequency (df) is added here as well, but directly to the dictionary `to_dict` that will be dumped into dictionary.txt.
 -- to_dict will be in the following format:
 to_dict = {term: [df, pointer_to_posting]}
-- dictionary is processed and re-formatted for each term, and all postings are dumped into postings.txt
+- dictionary is processed and re-formatted for each term, and all postings are dumped into postings.txt as a list of tuples,
+as illustrated below, where each tuple consists of docID and norm_w.
 - the docLength dictionary, together with to_dict, are dumped into dictionary.txt.
 
 Searching:
-- for every query term, its w_tq is calculated and its posting is fetched.
--
+- for every query term, its posting is first fetched, then its w_tq is calculated, and normalised by the length of the
+weighted query vector.
+- the product between w_tq and norm_w is then found for all query terms and added to score[d].
 
-top 20 of its posting is loaded from postings.txt --> dictionary for relevant_postings
-re-constructed, but only for terms queried.
+score_calc:
+{term1:
+    {docID1: [w_tq1_1, norm_w1_1]
+     docID2: [w_tq1_2, norm_w1_2]
+     ...
+    }
+...
+}
+
+scores:
+{docID1: score1
+...
+}
 
 == Files included with this submission ==
 
@@ -45,8 +69,8 @@ term2: [df2, pointer_to_posting2]
 }
 
 postings.txt:
-[(docID1_1, term_freq1, norm_w1), (docID1_2, term_freq2, norm_w2),...]
-[(docID2_1, term_freq1, norm_w1), (docID2_2, term_freq2, norm_w2),...]
+[(docID1_1, norm_w1), (docID1_2, norm_w2),...]
+[(docID2_1, norm_w1), (docID2_2, norm_w2),...]
 ...
 
 == Statement of individual work ==

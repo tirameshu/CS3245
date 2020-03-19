@@ -59,9 +59,11 @@ def process_dict(dictionary):
         lst = []
         for docID in doc_info:
             term_freq, weighted_tf, norm_w, df = doc_info[docID]
-            t = (docID, term_freq, norm_w)
+            t = (docID, norm_w)
             lst.append(t)
 
+        # lst sorted in desc order acc to norm_w
+        lst.sort(key=lambda x: x[1], reverse=True)
         posting_dict[term] = lst # all postings
 
         # ranked_norm_w = list(set(map(lambda x:x[2], lst))) # get a list of all norm_w
