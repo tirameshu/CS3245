@@ -293,9 +293,15 @@ def simple_merge(to_merge, dict):
             not_flag[0] = True
         else:
             if not_flag[0]:
-                term = process_query_term(query_term)
+                # need to check whether query_term is list
+                if isinstance(query_term, list):
+                    term = query_term
+                else:
+                    term = process_query_term(query_term)
                 if not term:
                     continue
+
+                # not_search alr accounts for term being a list
                 lst = not_search(term, dict) # list of str
                 #  ("not list:")
                 # print(lst[:3])
