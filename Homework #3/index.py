@@ -1,65 +1,67 @@
 #!/usr/bin/python3
 import re
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 import sys
 import getopt
-import os
+from pathlib import Path
+import linecache
 import pickle
 import math
-
-from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.stem import PorterStemmer
-
-
-class Node:
-    def __init__(self, docID):
-        self.docID = docID # int
-        self.skip = None
-        self.next = None
-
-    def set_next(self, node):
-        self.next = node
-
-    def set_skip(self, node):
-        self.skip = node
-
-    def get_next(self):
-        return self.next
-
-    def get_skip(self):
-        if (self.has_skip):
-            return self.skip
-
-    def has_next(self):
-        return self.next != None and type(self.next) == Node
-
-    def has_skip(self):
-        return self.skip != None and self.skip != self
-
 
 def usage():
     print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
 
-def setup_skip_pointers(dictionary, term):
-    docs = dictionary[term] # nodes
-    docs.sort(key=lambda x: x.docID)
+def populate_index(index, tokens, docID):
+    """
+    stores unique words in the dictionary along with their term frequency and document ID. Returns document length
+    corresponding to the given docID.
+    """
+    for token in tokens:
+        if token in index:
+            docs = index[token] # get dictionary of docIDs containing this term as key
+            if docID not in docs:
+                docs[docID] = 1 # first instance of this term in this doc
+            else:
+                docs[docID] += 1 # increment term frequency by 1
+        else:
+            index[token] = {docID: 1} # first instance of term in any doc
 
-    doc_freq = len(docs)
-    sqrt_L = math.floor(math.sqrt(doc_freq))
+    words = set(tokens) # list of unique words in document with given docID
+    running_total = 0
+    for word in words:
+        tf = index[word][docID] # get term frequency of this word
+        weighted_tf = 1 + math.log(tf, 10) # tf is guaranteed to be at least 1
+        running_total += weighted_tf**2 # update running total for document length calculation
 
-    for i in range(doc_freq):
-        node = docs[i]
-        if i % sqrt_L == 0: # only for multiples of sqrt_L
-            skip_to = docs[min(i+sqrt_L, doc_freq-1)]
-            if skip_to != node:
-                node.set_skip(skip_to)
+    doc_length = math.sqrt(running_total)
+    return doc_length
 
-        # set next
-        if i == doc_freq-1:
-            return # only last one has no next
-        next = docs[i+1]
-        node.set_next(next)
+def write_to_disk(index, doc_lengths, out_dict, out_postings):
+    dictionary = {} # key - term, value - (document_frequency, pointer_to_postings_list)
 
-    dictionary[term] = docs
+    # save postings to disk
+    with open(out_postings, 'wb') as postings:
+        for term, doc_info in index.items():
+            # obtain postings list from index
+            postings_list = []
+            for key, value in doc_info.items():
+                postings_list.append((key, value)) # (docID, tf)
+            postings_list.sort() # sort by docID
+
+            # populate dictionary
+            df = len(postings_list) # get document frequency
+            pointer = postings.tell() # get pointer
+            dictionary[term] = (df, pointer)
+
+            # store postings list to disk
+            pickle.dump(postings_list, postings)
+
+
+    # save dictionary to disk
+    with open(out_dict, 'wb') as dict:
+        pickle.dump(doc_lengths, dict)
+        pickle.dump(dictionary, dict)
 
 def build_index(in_dir, out_dict, out_postings):
     """
@@ -68,77 +70,43 @@ def build_index(in_dir, out_dict, out_postings):
     """
     print('indexing...')
 
-    script_abs_path = os.path.dirname(os.path.abspath(__file__))
-    dir = os.path.join(script_abs_path, in_dir)
+    # obtain file paths of documents to be indexed
+    file_paths = [f for f in Path(in_dir).iterdir() if f.is_file()]
 
-    files = os.listdir(dir)
-    files = list(map(lambda x: int(x), files)) # list of int
-    files.sort()
+    # initialise dictionaries to store vocabulary and document lengths
+    index = {}
+    doc_lengths = {}
 
-    dictionary = {} # dict of term: nodes
+    # use Porter stemmer for stemming
+    stemmer = PorterStemmer()
 
-    """
-    dictionary = {
-    term1: node(docID1), node(docID2), ...
-    ...
-    }
-    """
+    for file in file_paths:
+        # extract and save document ID
+        docID = int(file.stem)
 
-    for docID in files:
-        node = Node(docID)
+        print("indexing doc " + str(docID)) # for debugging
 
-        file = open(os.path.join(dir, str(docID)))
-        sentences = sent_tokenize(file.read())
-        words_nested = map(lambda x: word_tokenize(x), sentences)
-        words = set() # set of all distinct words
-        for unit in words_nested:
-            words.update(set(unit))
+        # list of tokens in current document
+        tokens = []
 
-        for word in words:
-            if not word.isalpha():
-                continue
+        # get all lines from the current document
+        lines = linecache.getlines(str(file))
 
-            ps = PorterStemmer()
-            word = ps.stem(word) # stemming
-            word = word.lower() # case folding
+        # case folding, word tokenizing, stemming
+        for line in lines:
+            tokens.extend([stemmer.stem(token.lower()) for token in word_tokenize(line)])
 
-            if word in dictionary:
-                docs = dictionary[word] # list of int docIDs
-                if node not in docs:
-                    docs.append(node)
-            else:
-                dictionary[word] = [node]
+        # add distinct words to the index while storing doc ID and term frequency
+        # method returns document length as well
+        doc_length = populate_index(index, tokens, docID)
 
-            # print(list(dictionary.items())[:4])
+        # store document length
+        doc_lengths[docID] = doc_length
 
-    # store in dict: term, docfreq, tell() in postings
-    # will  write into this file directly and only once
-    dict_file = open(out_dict, "w+")
-    posting = open(out_postings, "wb+")
+    # restructure index and write both dictionary and postings to disk
+    write_to_disk(index, doc_lengths, out_dict, out_postings)
 
-    # save a list of all file numbers to facilitate NOT search
-    dict_file.write(" ".join(map(lambda x: str(x), files)))
-    dict_file.write("\n")
-
-    # print("limit: " + str(sys.getrecursionlimit()))
-    new_limit = 30000
-    sys.setrecursionlimit(new_limit)
-
-    for term in dictionary:
-        # sort posting and set up skip pointers first
-        setup_skip_pointers(dictionary, term)
-
-        pointer = posting.tell()
-        # writing into postings.txt
-        docs = dictionary[term]
-        pickle.dump(docs, posting)
-
-        # writing into dictionary.txt
-        # stores term, doc_freq, pointer
-        to_dict = " ".join((term, str(len(docs)), str(pointer)))
-        dict_file.write(to_dict + "\n")
-
-    posting.close()
+    print("done indexing")
 
 input_directory = output_file_dictionary = output_file_postings = None
 
