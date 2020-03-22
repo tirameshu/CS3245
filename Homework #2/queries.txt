@@ -1,1 +1,2 @@
-potato OR potato
+potato OR NOT (america AND horse)
+pen AND NOT (paper or money)
