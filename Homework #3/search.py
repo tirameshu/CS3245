@@ -35,7 +35,7 @@ def evaluate(query, dict_file, postings_file):
         # return top ten highest scores as a list
         top_scores = heapq.nlargest(min(len(scores), no_of_results), scores.items(), key=lambda x: (x[1], x[0]))
         top_docs = [score[0] for score in top_scores]
-        top_docs.sort() # sort just in case two doc IDs are not arranged in ascending order for same score
+        # top_docs.sort() # sort just in case two doc IDs are not arranged in ascending order for same score
 
     return top_docs
 

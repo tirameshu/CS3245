@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import re
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem import PorterStemmer
 import sys
 import getopt
@@ -45,9 +45,9 @@ def write_to_disk(index, doc_lengths, out_dict, out_postings):
         for term, doc_info in index.items():
             # obtain postings list from index
             postings_list = []
-            for key, value in doc_info.items():
-                postings_list.append((key, value)) # (docID, tf)
-            postings_list.sort() # sort by docID
+            for docID, tf in doc_info.items():
+                postings_list.append((docID, tf))
+            postings_list.sort(key=lambda x: x[0]) # sort by docID
 
             # populate dictionary
             df = len(postings_list) # get document frequency
@@ -93,6 +93,7 @@ def build_index(in_dir, out_dict, out_postings):
         lines = linecache.getlines(str(file))
 
         # case folding, word tokenizing, stemming
+        # lines = sent_tokenize(lines)
         for line in lines:
             tokens.extend([stemmer.stem(token.lower()) for token in word_tokenize(line)])
 
