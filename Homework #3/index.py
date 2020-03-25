@@ -60,7 +60,7 @@ def write_to_disk(index, doc_lengths, out_dict, out_postings):
             postings_list = []
             for docID, tf in doc_info.items():
                 postings_list.append((docID, tf)) # (docID, tf)
-            postings_list.sort(lambda x: x[0]) # sort by docID
+            postings_list.sort(key=lambda x: x[0]) # sort by docID
 
             # populate dictionary
             df = len(postings_list) # get document frequency
