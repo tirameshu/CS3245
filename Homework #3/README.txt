@@ -1,98 +1,57 @@
-This is the README file for A0180257E's submission
+This is the README file for A0180257E's and A0158850X's submission
+emails: e0273834@u.nus.edu and e0042053@u.nus.edu
 
 == Python Version ==
 
-I'm using Python Version 3.7 for
-this assignment.
+We're using Python Version 3.7.4 for this assignment.
 
 == General Notes about this assignment ==
 
-Assumptions:
-1) nltk is in same directory as script
+1. We assume that the full path of directory of documents is specified as input argument -i while indexing
 
-Active Decisions:
-- to not use champion list as it is pointless; final score for any document does not depend on whether the document
-has a higher weight for any individual term, but a number of them. A document containing more query terms
-but small weights for them might have higher score than a document with high weights for only a few terms.
-Tldr cannot determine, must calculate and then rank.
-- to not only consider posting with > k number of query terms: need do stopword removal for query, merging takes time,
-and involves going through all the postings anyway, might as well just calculate directly. Also hard to implement.
+2. We implement a Vector Space Model using the lnc.ltc ranking scheme discussed in the lecture notes for Week 7, without
+any additional optimisations such as champion lists or stopword removal.
 
-Indexing:
-- after processing each word from each file into terms, each term is added to the dictionary
-temporarily stored in `index.py`. Term frequency (term_freq) increments by 1 every time the same word
-is encountered again in the same doc.
-- the final dictionary format will be as follows:
-dictionary = {term: {docID: [term_freq, weighted_term_freq, norm_w, df]}}
-- idf is not required for document, but needed for query.
-- weighted_term_freq is calculated at the end of each doc. In the same function, docLength is also calculated.
-- normalised_weight (norm_w) is then calculated for each term, based on weighted_term_freq and docLength.
-Document frequency (df) is added here as well, but directly to the dictionary `to_dict` that will be dumped into dictionary.txt.
--- to_dict will be in the following format:
-to_dict = {term: [df, pointer_to_posting]}
-- dictionary is processed and re-formatted for each term, and all postings are dumped into postings.txt as a list of tuples,
-as illustrated below, where each tuple consists of docID and norm_w.
-- the docLength dictionary, together with to_dict, are dumped into dictionary.txt.
+3. For indexing, we largely build on the code used for Homework 2. After tokenising, stemming, and case folding, we
+store the terms and their term frequency in a dictionary, while calculating the document length for every document and
+storing these in a list. During indexing, the index is built in memory.
 
-Searching:
-- for every query term, its posting is first fetched, then its w_tq is calculated, and normalised by the length of the
-weighted query vector.
-- the product between w_tq and norm_w is then found for all query terms and added to score[d].
+4. While saving the index to disk, we store the document frequency and pointer to postings list for each
+term in dictionary.txt while a postings list of document IDs and term frequency corresponding to each term is saved to
+postings.txt. Both dictionary and postings list are serialised prior to storage.
 
-score_calc:
-{term1:
-    {docID1: [w_tq1_1, norm_w1_1]
-     docID2: [w_tq1_2, norm_w1_2]
-     ...
-    }
-...
-}
+5. For query parsing during search, we tokenize the alpha-numeric terms in the query along with stemming and case
+folding. Any punctuation in the query or other non-alpha-numeric symbols are disregarded.
 
-scores:
-{docID1: score1
-...
-}
+6. For searching, the parsed query is first converted into a query vector containing query terms and normalised term
+frequency. The cosine scores for each document are then calculated according to the lnc-ltc algorithm described in
+class.
+
+7. A heap is used to retrieve the top 10 most relevant documents according to their cosine score. If two documents have
+the same cosine score, the document IDs are listed in increasing order.
+
+8. In terms of work allocation, generally speaking, A0180257E implemented index.py and A0158850X implemented search.py.
+A0180257E helped debug search.py and A0158850X did the README and method-level documentation. Both worked on testing the
+accuracy of the code.
 
 == Files included with this submission ==
 
-index.py:
-
-search.py:
-
-dictionary.txt:
-- storage format:
-docLength[N]
-{
-term1: [df1, pointer_to_posting1]
-term2: [df2, pointer_to_posting2]
-...
-}
-
-postings.txt:
-[(docID1_1, norm_w1), (docID1_2, norm_w2),...]
-[(docID2_1, norm_w1), (docID2_2, norm_w2),...]
-...
+1. index.py: script for indexing
+2. search.py: script for searching
+3. postings.txt: text file containing serialised postings lists
+4. dictionary.txt: text file containing serialised dictionary
+5. README.txt: text file information about the homework
 
 == Statement of individual work ==
 
 Please put a "x" (without the double quotes) into the bracket of the appropriate statement.
 
-[x] I/We, A0180257E, certify that I/we have followed the CS 3245 Information
-Retrieval class guidelines for homework assignments.  In particular, I/we
-expressly vow that I/we have followed the Facebook rule in discussing
+[x] We, A0180257E and A0158850X, certify that we have followed the CS 3245 Information
+Retrieval class guidelines for homework assignments.  In particular, we
+expressly vow that we have followed the Facebook rule in discussing
 with others in doing the assignment and did not take notes (digital or
 printed) from the discussions.  
 
-[ ] I/We, A0000000X, did not follow the class rules regarding homework
-assignment, because of the following reason:
-
-<Please fill in>
-
-We suggest that we should be graded as follows:
-
-<Please fill in>
-
 == References ==
-
-<Please list any websites and/or people you consulted with for this
-assignment and state their role>
+1. CS3245 Week 7 lecture notes for understanding the lnc.ltc ranking scheme and the cosine score algorithm.
+2. Heapq documentation for implementing the heap. URL: https://docs.python.org/2/library/heapq.html

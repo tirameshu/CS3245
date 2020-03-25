@@ -14,11 +14,24 @@ def usage():
 
 def parse_query(query):
     """
-    Returns a list of word tokens from the input query after stemming and case folding.
+    Returns a list of word tokens from the input query after stemming and case folding. Only alphanumerical terms in the
+    input query are considered.
+
+    @param query string representing the query to be processed
+    @return list of tokens from the input query after processing
     """
-    return [PorterStemmer().stem(token.lower()) for token in word_tokenize(query)]
+    return [PorterStemmer().stem(token.lower()) for token in word_tokenize(query) if token.isalnum()]
 
 def evaluate(query, dict_file, postings_file):
+    """
+    Evaluate a parsed query by building query vector and calculating cosine scores to return the doc IDs of the top ten
+    most relevant documents.
+
+    @param query list containing tokens of the parsed query
+    @param dict_file input file containing the dictionary stored in the disk
+    @param postings_file input file containing the postings lists stored in the disk
+    @return list containing doc IDs of the top 10 most relevant documents
+    """
     with open(dict_file, 'rb') as d:
         # retrieve document lengths and vocabulary
         doc_lengths = pickle.load(d)
@@ -33,15 +46,19 @@ def evaluate(query, dict_file, postings_file):
         scores = calculate_cosine_scores(query_vector, dictionary, doc_lengths, postings_file)
 
         # return top ten highest scores as a list
-        top_scores = heapq.nlargest(min(len(scores), no_of_results), scores.items(), key=lambda x: (x[1], x[0]))
+        top_scores = heapq.nlargest(min(len(scores), no_of_results), scores.items(), key=lambda i: i[1])
         top_docs = [score[0] for score in top_scores]
-        # top_docs.sort() # sort just in case two doc IDs are not arranged in ascending order for same score
 
     return top_docs
 
 def build_query_vector(query, dictionary, N):
     """
-    Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary
+    Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
+
+    @param query list containing tokens of the parsed query
+    @param dictionary a dictionary containing the vocabulary, document frequency, and pointer to postings list
+    @param N integer representing the total number of documents in the corpus
+    @return query vector containing dictionary term as key and normalised w_tq of term as value
     """
     query_vector = {} # key: term, value: normalised w_tq of term
 
@@ -75,13 +92,22 @@ def build_query_vector(query, dictionary, N):
     # calculate normalised weighted term frequency
     query_length = math.sqrt(w_tq_running_total)
     for term in query_vector:
-        query_vector[term] /= query_length
+        if query_length: # check for zero query length
+            query_vector[term] /= query_length
+        else:
+            query_vector[term] = 0
 
     return query_vector
 
 def calculate_cosine_scores(query_vector, dictionary, doc_lengths, postings_file):
     """
-    Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary
+    Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
+
+    @param query_vector dictionary representing the query vector
+    @param dictionary dictionary a dictionary containing the vocabulary, document frequency, and pointer to postings list
+    @param doc_lengths list of document lengths for all documents in the corpus
+    @param postings_file input file containing the postings lists stored in the disk
+    @return dictionary containing document IDs as key and cosine scores as values
     """
     scores = {} # key: docID, value: cosine score
     with open(postings_file, 'rb') as p:
@@ -94,25 +120,33 @@ def calculate_cosine_scores(query_vector, dictionary, doc_lengths, postings_file
 
                 for posting in postings_list:
                     docID = posting[0]
-                    doc_length = doc_lengths[docID]
 
                     # calculate weighted term frequency
                     tf = posting[1]
                     ltf = 1 + math.log(tf, 10)
-                    w_td = ltf / doc_length # normalise
 
                     # update scores
                     if docID in scores:
-                        scores[docID] += w_td * query_vector[term]
+                        scores[docID] += ltf * query_vector[term]
                     else:
-                        scores[docID] = 0
+                        scores[docID] = ltf * query_vector[term]
+
+    # normalise all scores by dividing by document length
+    for docID, score in scores.items():
+        doc_length = doc_lengths[docID]
+        scores[docID] = score / doc_length
 
     return scores
 
 def run_search(dict_file, postings_file, queries_file, results_file):
     """
-    using the given dictionary file and postings file,
-    perform searching on the given queries file and output the results to a file
+    using the given dictionary file and postings file, perform searching on the given queries file and output the
+    results to a file.
+
+    @dict_file input file containing the dictionary stored in the disk
+    @postings_file input file containing the postings lists stored in the disk
+    @param queries_file input file with each line containing a query to be processed
+    @param results_file output file to write the results of the search to
     """
     print('running search on the queries...')
     start_time = time.time() # clock the run

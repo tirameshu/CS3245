@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import re
-from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 import sys
 import getopt
@@ -14,8 +14,13 @@ def usage():
 
 def populate_index(index, tokens, docID):
     """
-    stores unique words in the dictionary along with their term frequency and document ID. Returns document length
+    Stores unique words in the dictionary along with their term frequency and document ID. Returns document length
     corresponding to the given docID.
+
+    @param index dictionary that contains the index to be populated
+    @param tokens list of tokens in current document
+    @param docID document ID of current document
+    @return float representing length of document
     """
     for token in tokens:
         if token in index:
@@ -38,6 +43,14 @@ def populate_index(index, tokens, docID):
     return doc_length
 
 def write_to_disk(index, doc_lengths, out_dict, out_postings):
+    """
+    Writes dictionary and postings lists to disk using pickle.
+
+    @param index dictionary that contains the index to be separated into dictionary and postings lists
+    @param doc_lengths list of document lengths of all documents in the corpus]
+    @param out_dict output file for the dictionary to be written to
+    @param out_postings output file for the postings lists to be written to
+    """
     dictionary = {} # key - term, value - (document_frequency, pointer_to_postings_list)
 
     # save postings to disk
@@ -46,8 +59,8 @@ def write_to_disk(index, doc_lengths, out_dict, out_postings):
             # obtain postings list from index
             postings_list = []
             for docID, tf in doc_info.items():
-                postings_list.append((docID, tf))
-            postings_list.sort(key=lambda x: x[0]) # sort by docID
+                postings_list.append((docID, tf)) # (docID, tf)
+            postings_list.sort(lambda x: x[0]) # sort by docID
 
             # populate dictionary
             df = len(postings_list) # get document frequency
@@ -65,8 +78,10 @@ def write_to_disk(index, doc_lengths, out_dict, out_postings):
 
 def build_index(in_dir, out_dict, out_postings):
     """
-    build index from documents stored in the input directory,
-    then output the dictionary file and postings file
+    build index from documents stored in the input directory, then output the dictionary file and postings file.
+    @param in_dir input file specifying the directory containing the corpus of documents
+    @param out_dict output file for the dictionary to be written to
+    @param out_postings output file for postings lists to be written to
     """
     print('indexing...')
 
@@ -93,7 +108,6 @@ def build_index(in_dir, out_dict, out_postings):
         lines = linecache.getlines(str(file))
 
         # case folding, word tokenizing, stemming
-        # lines = sent_tokenize(lines)
         for line in lines:
             tokens.extend([stemmer.stem(token.lower()) for token in word_tokenize(line)])
 
