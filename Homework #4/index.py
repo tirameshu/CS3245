@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from nltk.tokenize import word_tokenize
+from nltk.tokenize import sent_tokenize
 from nltk.stem import PorterStemmer
 import sys
 import getopt
@@ -12,10 +13,21 @@ import csv
 def usage():
     print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
 
-def populate_index(index, tokens, docID):
-    pass
+"""
+@:param tokens: a list of all tokens
+@:return positional indexs
 
-def write_to_disk(index, doc_lengths, out_dict, out_postings):
+The first time a term is encountered already
+adds all positions for that doc to index.
+"""
+
+def populate_index(index, tokens, docID):
+    # TODO: consider adding count as well?
+
+    for token in tokens:
+        index[docID] = set(i for i in tokens if tokens[i] == token)
+
+def write_to_disk(index, out_dict, out_postings):
     pass
 
 """
@@ -41,41 +53,37 @@ def build_index(in_dir, out_dict, out_postings):
     """
     print('indexing...')
 
-    # obtain file paths of documents to be indexed
-    file_paths = [f for f in Path(in_dir).iterdir() if f.is_file()]
-
-    # initialise dictionaries to store vocabulary and document lengths
-    index = {}
-    doc_lengths = {}
+    data = read_csv(in_dir)
 
     # use Porter stemmer for stemming
     stemmer = PorterStemmer()
 
-    for file in file_paths:
-        # extract and save document ID
-        docID = int(file.stem)
+    # every field has its own dictionary
+    title_dic = {}
+    content_dic = {}
+    date_dic = {}
+    court_dic = {}
 
-        print("indexing doc " + str(docID)) # for debugging
+    for entry in data:
+        docID, title, content, date, court = entry
 
-        # list of tokens in current document
+        title_dic[docID] = title
+        date_dic[docID] = date
+        court_dic[docID] = court
+
         tokens = []
 
-        # get all lines from the current document
-        lines = linecache.getlines(str(file))
+        # process content as per normal
 
-        # case folding, word tokenizing, stemming
-        for line in lines:
-            tokens.extend([stemmer.stem(token.lower()) for token in word_tokenize(line)])
+        sentences = sent_tokenize(content)
 
-        # add distinct words to the index while storing doc ID and term frequency
-        # method returns document length as well
-        doc_length = populate_index(index, tokens, docID)
+        for sentence in sentences:
+            tokens.extend([stemmer.stem(token.lower()) for token in word_tokenize(sentence)])
 
-        # store document length
-        doc_lengths[docID] = doc_length
+        populate_index(content_dic, tokens, docID)
 
     # restructure index and write both dictionary and postings to disk
-    write_to_disk(index, doc_lengths, out_dict, out_postings)
+    write_to_disk(content_dic, out_dict, out_postings)
 
     print("done indexing")
 

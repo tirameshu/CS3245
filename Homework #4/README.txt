@@ -7,14 +7,27 @@ We're using Python Version 3.7.4 for this assignment.
 
 == General Notes about this assignment ==
 
+==== Index ===
+1. We assume that the full path of directory of documents is specified as input argument -i while indexing
+
+2. We index title, content, date and court as separate dictionaries, as each `in` search is O(1), so searching
+with separate dictionaries is effectively O(1), rather than looping through all docs.
+
+3.
+
+----------------
+
+=== Search ===
 1. Query Processing.
 1.1 For every search, delimit with AND op, and first retrieve for each query term separately.
 A query term can be a phrase.
+1.2 All query terms are assumed to be equally important, as we assume that users are lawyers who chose appropriate
+keywords to query, since the query only contains 2-3 terms. As such, cosine similarity is not used.
 
 2. Zones and Fields.
 2.1 Weighted zone scoring is used. Even though each document has 5 fields,
 what is more significant is the separation of metadata from the content body of the document,
-to facilitate searching of documentID, date, court, etc., which are very likely to be queried specifically.
+to facilitate searching of title, date, court, etc., which are very likely to be queried specifically.
 2.2 Therefore there are 2 zones for every document: metadata (zone1) and content (zone2).
 2.3 The weight of zone1 is to be set higher than that of zone2, to facilitate specific searches
 in fields. // TODO: decide on whether it shld rly be higher, and how much higher
