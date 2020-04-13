@@ -1,3 +1,5 @@
+import csv
+
 def get_consecutives(positions1, positions2):
     result = []
     i, j = 0, 0
@@ -93,3 +95,16 @@ posting = {
 
 print(phrasal_query(["term1", "term2"], posting))
 """
+
+def read_csv(csvfilename):
+    """
+    Reads a csv file and returns a list of list
+    containing rows in the csv file and its entries.
+    """
+    rows = []
+
+    with open(csvfilename) as csvfile:
+        file_reader = csv.reader(csvfile)
+        for row in file_reader:
+            rows.append(row)
+    return rows
