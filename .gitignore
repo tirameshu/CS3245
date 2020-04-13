@@ -2,3 +2,4 @@ nltk*
 *.zip
 postings*
 *.csv
+data*
