@@ -7,23 +7,27 @@ We're using Python Version 3.7.4 for this assignment.
 
 == General Notes about this assignment ==
 
-1. For every search, delimit with AND op, and first retrieve for each query term separately.
+1. Query Processing.
+1.1 For every search, delimit with AND op, and first retrieve for each query term separately.
 A query term can be a phrase.
 
-2. Weighted zone scoring is used. Even though each document has 5 fields, what is more significant is
-the separation of metadata from the content body of the document, to facilitate searching of
-documentID, date, court, etc., which are very likely to be queried specifically.
-2.1 Therefore there are 2 zones for every document: metadata (zone1) and content (zone2).
-2.2 The weight of zone1 is to be set higher than that of zone2, to facilitate specific searches
+2. Zones and Fields.
+2.1 Weighted zone scoring is used. Even though each document has 5 fields,
+what is more significant is the separation of metadata from the content body of the document,
+to facilitate searching of documentID, date, court, etc., which are very likely to be queried specifically.
+2.2 Therefore there are 2 zones for every document: metadata (zone1) and content (zone2).
+2.3 The weight of zone1 is to be set higher than that of zone2, to facilitate specific searches
 in fields. // TODO: decide on whether it shld rly be higher, and how much higher
-2.3 If multiple query terms exist, they must be connected by AND, therefore weighted zone can be calculated
+2.4 If multiple query terms exist, they must be connected by AND, therefore weighted zone can be calculated
 for each term and summed using the algorithm as described in Fig 6.4 of Textbook Chapter 6.
-2.4 This implementation covers both the searching of query terms in fields and content body.
+2.5 This implementation covers both the searching of query terms in fields and content body.
 
-3. Query Refinement
+3. Phrasal Search.
+
+4. Query Refinement
 
 == Work Allocation ==
-Wang Xinman: drafted the structure of implementation, implementation of zones and fields
+Wang Xinman: drafted the structure of implementation, implementation of zones and fields, and phrasal search
 
 == Files included with this submission ==
 

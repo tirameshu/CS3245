@@ -1,4 +1,5 @@
-import csv
+def calculate_g():
+    return (n_10r + n_01n) / (n_10r + n_10n + n_01r + n_01n)
 
 def get_consecutives(positions1, positions2):
     result = []
@@ -24,8 +25,8 @@ def get_consecutives(positions1, positions2):
     return result
 
 """
-:param phrase: list of (processed) query terms
-:param postings: dictionary of terms and their positions for each doc
+@:param phrase: list of (processed) query terms
+@:param postings: dictionary of terms and their positions for each doc
 """
 def phrasal_query(phrase, postings):
     """
@@ -97,15 +98,32 @@ print(phrasal_query(["term1", "term2"], posting))
 """
 
 """
-Reads a csv file and returns a list of list
-containing rows in the csv file and its entries,
-including header row.
-"""
-def read_csv(csvfilename):
-    rows = []
+Calculates zone score for two query terms joined by AND
 
-    with open(csvfilename) as csvfile:
-        file_reader = csv.reader(csvfile)
-        for row in file_reader:
-            rows.append(row)
-    return rows
+@:param zone1_weight: since there are only 2 zones, weight of zone2 is just
+1 - zone1_weight
+
+@:return scores: a dictionary of { docID: zone_score }
+"""
+def zone_score(term1, term2):
+    scores = {}
+    zone1_weight = calculate_g()
+
+    postings1 = get_postings(term1)
+    postings2 = get_postings(term2)
+
+    i, j = 0, 0
+    while i < len(postings1) and j < len(postings2):
+        doc1 = postings1[i]
+        doc2 = postings2[j]
+
+        if doc1 == doc2:
+            scores[doc1] = weighted_zone(postings1, postings2, zone1_weight)
+            i += 1
+            j += 1
+        elif doc1 < doc2:
+            i += 1
+        else:
+            j += 1
+
+    return scores
