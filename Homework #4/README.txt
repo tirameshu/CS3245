@@ -36,6 +36,8 @@ for each term and summed using the algorithm as described in Fig 6.4 of Textbook
 2.5 This implementation covers both the searching of query terms in fields and content body.
 
 3. Phrasal Search.
+Potential edge cases:
+1. Repeated words, eg "one by one"
 
 4. Query Refinement
 
