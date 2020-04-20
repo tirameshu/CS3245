@@ -14,8 +14,8 @@ def usage():
     print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
 
 """
-@:param tokens: a list of all tokens
-@:return positional indexs
+:param tokens: a list of all tokens
+:return positional indexs
 
 The first time a term is encountered already
 adds all positions for that doc to index.
@@ -47,9 +47,9 @@ def read_csv(csvfilename):
 def build_index(in_dir, out_dict, out_postings):
     """
     build index from documents stored in the input directory, then output the dictionary file and postings file.
-    @param in_dir input file specifying the directory containing the corpus of documents
-    @param out_dict output file for the dictionary to be written to
-    @param out_postings output file for postings lists to be written to
+    param in_dir input file specifying the directory containing the corpus of documents
+    param out_dict output file for the dictionary to be written to
+    param out_postings output file for postings lists to be written to
     """
     print('indexing...')
 

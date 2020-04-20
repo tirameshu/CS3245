@@ -47,8 +47,17 @@ with separate dictionaries is effectively O(1), rather than looping through all 
     2.5 This implementation covers both the searching of query terms in fields and content body.
 
 3. Phrasal Search.
-Potential edge cases:
-1. Repeated words, eg "one by one"
+    3.1 Query phrase is tokenised into words, and the posting of each word is found separately.
+
+    3.2 The intersection of the postings are then found based on the docIDs, similar to boolean search.
+        3.2.1 However, the list of positions for each query term is kept separate.
+        3.2.2. The lists of positions should be ordered according to the order of the words in the phrase.
+
+    3.3 Loop through the nodes in the resultant list, and check whether the positions of the words in the phrase
+        are in the desired order.
+
+    3.4 Potential edge cases:
+        3.4.1. Repeated words, eg "one by one", "so so"
 
 4. Query Refinement
 

@@ -19,6 +19,22 @@ def and_search(p1, p2):
 def calculate_g():
     return (n_10r + n_01n) / (n_10r + n_10n + n_01r + n_01n)
 
+
+"""
+:param node: contains docID, term, fields and corresponding boolean values
+for whether it contains the term, etc
+:param zone_weights: weights given to each zone to be multiplied with boolean
+:return zone_score: sum of zone_score for each zone
+"""
+def get_weighted_zone(node, zone_weights): # TODO: @atharv, depends on your implementation
+    """
+    implementation 1: every zone contains a boolean value
+
+    implementation 2: node has attributes "in_metadata" and "in_body",
+    with boolean values for both, so calculation is only done based on these two.
+    """
+    pass
+
 def get_consecutives(positions1, positions2):
     result = []
     i, j = 0, 0
@@ -43,14 +59,13 @@ def get_consecutives(positions1, positions2):
     return result
 
 """
-@:param phrase: list of (processed) query terms
-@:param postings: dictionary of terms and their positions for each doc
-@:return result: list of docs containing the phrase
+:param phrase: list of (processed) query terms
+:param postings: dictionary of terms and their positions for each doc
+:return result: list of docs containing the phrase
 """
 def phrasal_query(phrase, postings):
     """
-    assumes all postings of all files exist
-    # postings:
+    postings:
     {
         term1: {
             doc1: [position1, position2, ...]
@@ -67,15 +82,13 @@ def phrasal_query(phrase, postings):
 
     # adding the docs and corresponding positions for all query terms
     # needs to be refreshed for every new query
+
     phrase_postings = []
-    """
-    [{doc1_1: [...], doc1_2: [...] ...}, {...}, {...}]
-    """
 
     for term in phrase:
         if term in postings:
             phrase_postings.append(postings[term]) # returns a dictionary
-        # TODO: If any of the query terms is not in postings, should we not reutrn anything or still return based on whatever's left?
+        # TODO: If any of the query terms is not in postings, should we not return anything or still return based on whatever's left?
 
     if phrase_postings:
         result = phrase_postings[0]
@@ -117,39 +130,23 @@ posting = {
 """
 
 """
-Calculates zone score for two query terms joined by AND
+For query containing AND: we will first merge the posting lists of
+all query terms, then conduct zone-scoring.
 
-@:param posting1: posting list of first query segment
-@:param posting2: posting list of second query segment 
+As such, regardless of boolean search or free text search or phrasal search,
+zone-scoring only takes in 1 list of nodes, which is already the list of docIDs
+to return to user.
 
-@:return scores: a dictionary of { docID: zone_score }
+This step is just to rank the docIDs. 
+
+:param posting: posting list
+
+:return scores: a dictionary of { docID: zone_score }
 """
-def and_zone_score(posting1, posting2):
-    scores = {}
-
-    i, j = 0, 0
-    while i < len(posting1) and j < len(posting2):
-        node1 = posting1[i]
-        node2 = posting2[j]
-
-        if node1.docID == node2.docID:
-            scores[node1.docID] = weighted_zone(node1, node2, zone_weights)
-            i += 1
-            j += 1
-        elif doc1 < doc2:
-            i += 1
-        else:
-            j += 1
-
-    return scores
-
-"""
-Find zone score of postings for one term, use for free text searches.
-"""
-def free_text_zone_score(posting):
+def get_zone_score(posting):
     scores = {}
     for i in range (len(posting)):
         node = posting[i]
-        scores[node1.docID] = weighted_zone(node, zone_weights)
+        scores[node.docID] = get_weighted_zone(node, zone_weights)
 
     return scores
