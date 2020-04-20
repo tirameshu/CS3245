@@ -66,3 +66,7 @@ Retrieval class guidelines for homework assignments.  In particular, we
 expressly vow that we have followed the Facebook rule in discussing
 with others in doing the assignment and did not take notes (digital or
 printed) from the discussions.
+
+== References ==
+Introduction to Information Retrieval Textbook Chapter 6 p3-7 for zone scoring algorithm and understanding,
+as well as formula for the optimal value of `g`.
