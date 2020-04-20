@@ -20,9 +20,12 @@ with separate dictionaries is effectively O(1), rather than looping through all 
 === Search ===
 1. Query Processing.
 1.1 For every search, delimit with AND op, and first retrieve for each query term separately.
-A query term can be a phrase.
-1.2 All query terms are assumed to be equally important, as we assume that users are lawyers who chose appropriate
-keywords to query, since the query only contains 2-3 terms. As such, cosine similarity is not used.
+1.1.1 If there's no AND (ie result of delimitation is of length 1), means it's a free-text query
+1.1.1.1 Then conduct normal tf-idf scoring.
+// TODO: should this be independent of zones? Assumption being that zone-specific searches are more likely to given in exact --> phrasal search
+
+1.1.2 If the result of delimitation involves quotation marks, means the query involves a phrase.
+1.1.2.1 Then conduct phrasal search, involving zones and fields.
 
 2. Zones and Fields.
 2.1 Weighted zone scoring is used. Even though each document has 5 fields,
