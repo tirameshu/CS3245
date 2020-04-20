@@ -25,9 +25,10 @@ with separate dictionaries is effectively O(1), rather than looping through all 
             1.1.1.2 Else, free text search. Conduct normal tf-idf scoring,
                     to be summed with weighted zone scoring, calculated for each individual query term.
         1.1.2 Else
-            1.1.2.1 If the result of delimitation involves quotation marks, means the query involves a phrase.
+            1.1.2.1 Merge the posting lists first.
+            1.1.2.2 If the result of delimitation involves quotation marks, means the query involves a phrase.
                     Then conduct phrasal search, involving zones and fields.
-            1.1.2.2 Else, free text search as above.
+            1.1.2.3 Else, free text search as above.
 
 2. Zones and Fields.
     2.1 Weighted zone scoring is used for all searches: free-text, boolean and phrasal.
