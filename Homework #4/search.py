@@ -1,3 +1,5 @@
+zone_weights = []
+
 def and_search(p1, p2):
     result = []
     i, j = 0, 0
@@ -112,37 +114,42 @@ posting = {
         2: [1, 6, 10]
     }
 }
-
-print(phrasal_query(["term1", "term2"], posting))
 """
 
 """
 Calculates zone score for two query terms joined by AND
 
-@:param zone1_weight: since there are only 2 zones, weight of zone2 is just
-1 - zone1_weight
+@:param posting1: posting list of first query segment
+@:param posting2: posting list of second query segment 
 
 @:return scores: a dictionary of { docID: zone_score }
 """
-def zone_score(term1, term2):
+def and_zone_score(posting1, posting2):
     scores = {}
-    zone1_weight = calculate_g()
-
-    postings1 = get_postings(term1)
-    postings2 = get_postings(term2)
 
     i, j = 0, 0
-    while i < len(postings1) and j < len(postings2):
-        doc1 = postings1[i]
-        doc2 = postings2[j]
+    while i < len(posting1) and j < len(posting2):
+        node1 = posting1[i]
+        node2 = posting2[j]
 
-        if doc1 == doc2:
-            scores[doc1] = weighted_zone(postings1, postings2, zone1_weight)
+        if node1.docID == node2.docID:
+            scores[node1.docID] = weighted_zone(node1, node2, zone_weights)
             i += 1
             j += 1
         elif doc1 < doc2:
             i += 1
         else:
             j += 1
+
+    return scores
+
+"""
+Find zone score of postings for one term, use for free text searches.
+"""
+def free_text_zone_score(posting):
+    scores = {}
+    for i in range (len(posting)):
+        node = posting[i]
+        scores[node1.docID] = weighted_zone(node, zone_weights)
 
     return scores
