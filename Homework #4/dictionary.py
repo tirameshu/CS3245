@@ -33,10 +33,10 @@ class Dictionary(object):
         Updates the given term with a pointer to its entry in postings. Pre-condition: term already exists in the
         dictionary.
 
-        @param term the existing term whose pointer is to be upated
+        @param term the existing term whose pointer is to be updated
         @param pointer the pointer to postings for the given term
         """
-        self.terms[term].append(pointer)
+        self.terms[term][1] = pointer
 
     def get_df(self, term):
         if self.has_term(term):
