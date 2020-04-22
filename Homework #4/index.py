@@ -9,6 +9,7 @@ import linecache
 import pickle
 import math
 import csv
+import time
 
 from dictionary import Dictionary
 from postings import Postings
@@ -150,4 +151,7 @@ if input_directory == None or output_file_postings == None or output_file_dictio
     sys.exit(2)
 
 # build_index(input_directory, output_file_dictionary, output_file_postings)
+start_time = time.time()  # clock the run
 build_index_VSM(input_directory, output_file_dictionary, output_file_postings)
+end_time = time.time()
+print('indexing completed in ' + str(round(end_time - start_time, 2)) + 's')

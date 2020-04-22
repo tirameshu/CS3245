@@ -1,5 +1,7 @@
 import linecache
 import math
+from collections import defaultdict
+
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
 from nltk.stem import PorterStemmer
@@ -40,11 +42,13 @@ def process_tokens(tokens, doc_id, dictionary, postings):
     @param postings postings to be updated
     @return a dictionary consisting of unique terms and their term frequencies
     """
-    term_frequencies = {}
+    term_frequencies = defaultdict(int)
+
     for token in tokens:
+        term_frequencies[token] += 1
+
         if dictionary.has_term(token):
-            # if token exists in dictionary, increment term frequency and update postings
-            term_frequencies[token] += 1
+            # if token exists in dictionary, update postings
 
             postings_index = dictionary.get_pointer(token)
             df_has_changed = postings.update_entry(doc_id, postings_index) # returns true if df of token changed
@@ -52,9 +56,7 @@ def process_tokens(tokens, doc_id, dictionary, postings):
                 dictionary.increment_df(token)
 
         else:
-            # if token does not exist in dictionary, create entry in term_frequencies, dictionary, and postings
-            term_frequencies[token] = 1
-
+            # if token does not exist in dictionary, create entry in dictionary and postings
             postings.add_entry(doc_id)
             postings_index = postings.get_length() - 1
             dictionary.add_unique_term(token, postings_index)
