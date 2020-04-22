@@ -4,9 +4,16 @@ class Dictionary(object):
     def __init__(self, out_file):
         self.out_file = out_file
         self.terms = {} # key - term, value - [document_frequency, pointer_to_postings_list]
+        self.doc_lengths = {} # only assigned during searching
 
     def get_terms(self):
         return self.terms
+
+    def get_no_of_docs(self):
+        return len(self.doc_lengths)
+
+    def get_doc_length(self, key):
+        return self.doc_lengths[key]
 
     def has_term(self, term):
         return term in self.terms
@@ -45,16 +52,18 @@ class Dictionary(object):
         else:
             return 0
 
-    def get_pointer(self, term):
+    def get_pointer(self, term): # only called when the term exists in the dictionary
         if self.has_term(term):
             return self.terms[term][1]
         else:
             return None
 
-    def save(self):
+    def save(self, doc_lengths):
         with open(self.out_file, 'wb') as dict:
+            pickle.dump(doc_lengths, dict)
             pickle.dump(self.terms, dict)
 
     def load(self):
         with open(self.out_file, 'rb') as dict:
+            self.doc_lengths = pickle.load(dict)
             self.terms = pickle.load(dict)

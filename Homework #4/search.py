@@ -1,3 +1,21 @@
+import re
+import sys
+import getopt
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
+import time
+import math
+import pickle
+import heapq
+
+from dictionary import Dictionary
+from postings import Postings
+from searching_utils import parse_query, evaluate_query
+
+
+def usage():
+    print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
+
 zone_weights = []
 
 def and_search(p1, p2):
@@ -16,9 +34,8 @@ def and_search(p1, p2):
 
     return result
 
-def calculate_g():
-    return (n_10r + n_01n) / (n_10r + n_10n + n_01r + n_01n)
-
+#def calculate_g():
+#    return (n_10r + n_01n) / (n_10r + n_10n + n_01r + n_01n)
 
 """
 :param node: contains docID, term, fields and corresponding boolean values
@@ -150,3 +167,49 @@ def get_zone_score(posting):
         scores[node.docID] = get_weighted_zone(node, zone_weights)
 
     return scores
+
+def run_search(dict_file, postings_file, queries_file, results_file):
+    """
+    Same as homework 3 - to be improved upon (atharv)
+    """
+    dictionary = Dictionary(dict_file)
+    postings = Postings(postings_file)
+
+    # parse and evaluate each query and write results to disk one by one
+    with open(queries_file, 'r') as q, open(results_file, 'w') as r:
+        queries = q.read().splitlines()
+        for query in queries:
+            print("processing " + query + "...")
+            parsed_query = parse_query(query)
+            results = evaluate_query(parsed_query, dictionary, postings)
+            result_string = " ".join(str(i) for i in results)
+            r.write(result_string + '\n')
+
+dictionary_file = postings_file = file_of_queries = output_file_of_results = None
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], 'd:p:q:o:')
+except getopt.GetoptError:
+    usage()
+    sys.exit(2)
+
+for o, a in opts:
+    if o == '-d':
+        dictionary_file  = a
+    elif o == '-p':
+        postings_file = a
+    elif o == '-q':
+        file_of_queries = a
+    elif o == '-o':
+        file_of_output = a
+    else:
+        assert False, "unhandled option"
+
+if dictionary_file == None or postings_file == None or file_of_queries == None or file_of_output == None :
+    usage()
+    sys.exit(2)
+
+start_time = time.time()  # clock the run
+run_search(dictionary_file, postings_file, file_of_queries, file_of_output)
+end_time = time.time()
+print('search completed in ' + str(round(end_time - start_time, 2)) + 's')

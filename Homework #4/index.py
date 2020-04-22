@@ -123,7 +123,7 @@ def build_index_VSM(in_dir, out_dict, out_postings):
 
     # write both dictionary and postings to disk
     postings.save(dictionary) # updates the pointers in the dictionary as well
-    dictionary.save()
+    dictionary.save(doc_lengths) # saves doc_lengths to disk as well
 
     print("done indexing")
 
