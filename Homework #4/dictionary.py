@@ -11,14 +11,15 @@ class Dictionary(object):
     def has_term(self, term):
         return term in self.terms
 
-    def add_unique_term(self, term):
+    def add_unique_term(self, term, pointer):
         """
-        Adds a unique term to the dictionary with document frequency of 1. Pre-condition: term does not already exist
-        in the dictionary.
+        Adds a unique term to the dictionary with document frequency of 1 and a pointer to the term's entry in the
+        postings list during indexing. Called during indexing.
 
         @param term the unique term to be added
+        @parm pointer a pointer to the term in postings during indexing
         """
-        self.terms[term] = [1] # increment document frequency of term from 0 to 1
+        self.terms[term] = [1, pointer]
 
     def increment_df(self, term):
         """
@@ -30,11 +31,11 @@ class Dictionary(object):
 
     def update_pointer(self, term, pointer):
         """
-        Updates the given term with a pointer to its entry in postings. Pre-condition: term already exists in the
-        dictionary.
+        Updates the given term with a pointer to its entry in the postings list saved on disk. Called at the end of
+        indexing.
 
         @param term the existing term whose pointer is to be updated
-        @param pointer the pointer to postings for the given term
+        @param pointer the pointer to postings list saved on disk for the given term at the end of indexing
         """
         self.terms[term][1] = pointer
 

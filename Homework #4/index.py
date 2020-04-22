@@ -10,6 +10,10 @@ import pickle
 import math
 import csv
 
+from dictionary import Dictionary
+from postings import Postings
+from indexing_utils import collect_tokens, process_tokens, calculate_doc_length
+
 def usage():
     print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
 
@@ -87,6 +91,42 @@ def build_index(in_dir, out_dict, out_postings):
 
     print("done indexing")
 
+def build_index_VSM(in_dir, out_dict, out_postings):
+    """
+    Same as homework 3 - to be improved upon (atharv)
+    """
+    print('indexing...')
+
+    # obtain file paths of documents to be indexed
+    file_paths = [f for f in Path(in_dir).iterdir() if f.is_file()]
+
+    # initialise dictionary and postings to build index
+    dictionary = Dictionary(out_dict)
+    postings = Postings(out_postings)
+    doc_lengths = {}
+
+    for file_path in file_paths:
+        # extract and save document ID
+        doc_id = int(file_path.stem)
+
+        print("indexing doc " + str(doc_id)) # for debugging
+
+        # collect tokens in current document
+        tokens = collect_tokens(str(file_path))
+
+        # process all tokens to get a dictionary of unique terms and their term frequencies in this document
+        term_frequencies = process_tokens(tokens, doc_id, dictionary, postings)
+
+        # calculate and store document length
+        doc_length = calculate_doc_length([value for value in term_frequencies.values()])
+        doc_lengths[doc_id] = doc_length
+
+    # write both dictionary and postings to disk
+    postings.save(dictionary) # updates the pointers in the dictionary as well
+    dictionary.save()
+
+    print("done indexing")
+
 input_directory = output_file_dictionary = output_file_postings = None
 
 try:
@@ -109,4 +149,5 @@ if input_directory == None or output_file_postings == None or output_file_dictio
     usage()
     sys.exit(2)
 
-build_index(input_directory, output_file_dictionary, output_file_postings)
+# build_index(input_directory, output_file_dictionary, output_file_postings)
+build_index_VSM(input_directory, output_file_dictionary, output_file_postings)

@@ -8,11 +8,11 @@ class Postings(object):
     def get_length(self):
         return len(self.postings)
 
-    def add_entry(self):
+    def add_entry(self, doc_id):
         """
-        Creates a new entry in postings only when a unique doc_id is encountered during indexing.
+        Creates a new entry in postings only when a unique token is encountered during indexing.
         """
-        self.postings.append({})
+        self.postings.append({doc_id: 1}) # set term frequency to 1
 
     def has_doc_id(self, doc_id, index):
         """
@@ -32,11 +32,14 @@ class Postings(object):
 
         @param doc_id an integer document_ID to be updated in postings
         @param index the index in postings at which the doc_id is to be updated
+        @return true if document frequency of term increases, that i, if doc_id is added to postings, false otherwise
         """
-        if not self.has_doc_id(doc_id, index):
-            self.postings[index][doc_id] = 1
+        if self.has_doc_id(doc_id, index):
+            self.postings[index][doc_id] +=1
+            return False
         else:
-            self.postings[index][doc_id] += 1
+            self.postings[index][doc_id] = 1
+            return True
 
     def save(self, dictionary):
         with open(self.out_file, 'wb') as post:
