@@ -9,7 +9,8 @@ and if the term appears in more than 1 zone, the next zone will be added to self
 class Term:
     def __init__(self, token, zone):
         self.token = token # the stemmed token associated with this term
-        self.zones = [zone] # which zone of the document the term is found in
+        # self.zones = [zone] # which zone of the document the term is found in.
+        # TODO: @atharv we need to decide whr to put zone, determines methods to support
         self.df = 0
         self.pointer = 0
 
