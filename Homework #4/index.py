@@ -1,155 +1,68 @@
 #!/usr/bin/python3
-from nltk.tokenize import word_tokenize
-from nltk.tokenize import sent_tokenize
-from nltk.stem import PorterStemmer
-import sys
-import getopt
-from pathlib import Path
-import linecache
-import pickle
-import math
 import csv
+import getopt
+import sys
 import time
 
-from dictionary import Dictionary
-from postings import Postings
-from indexing_utils import collect_tokens, process_tokens, calculate_doc_length
+from indexing_utils import collect_tokens, process_tokens, calculate_doc_length, write_to_disk
 
 def usage():
-    print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
+    print("usage: " + sys.argv[0] + " -i dataset-file -d dictionary-file -p postings-file")
 
-"""
-:param tokens: a list of all tokens
-:return positional indexs
-
-The first time a term is encountered already
-adds all positions for that doc to index.
-"""
-
-def populate_index(index, tokens, docID):
-    for token in tokens:
-        index[docID] = set(i for i in tokens if tokens[i] == token)
-
-def write_to_disk(index, out_dict, out_postings):
-    pass
-
-"""
-Reads a csv file and returns a list of list
-containing rows in the csv file and its entries,
-including header row.
-"""
-def read_csv(csvfilename):
-    rows = []
-
-    with open(csvfilename) as csvfile:
-        file_reader = csv.reader(csvfile)
-        for row in file_reader:
-            rows.append(row)
-    return rows
-
-def build_index(in_dir, out_dict, out_postings):
+def build_index(in_file, out_dict, out_postings):
     """
-    build index from documents stored in the input directory, then output the dictionary file and postings file.
-    param in_dir input file specifying the directory containing the corpus of documents
-    param out_dict output file for the dictionary to be written to
-    param out_postings output file for postings lists to be written to
+    Builds index by extracting key information from given dataset file.
+
+    @param in_file input dataset file the index is built from
+    @param out_dict target output file to write dictionary to
+    @param out_postings target output file to write postings to
     """
     print('indexing...')
 
-    data = read_csv(in_dir)
-
-    # use Porter stemmer for stemming
-    stemmer = PorterStemmer()
-
-    # every field has its own dictionary
-    title_dic = {}
-    content_dic = {}
-    date_dic = {}
-    court_dic = {}
-
-    for entry in data:
-        docID, title, content, date, court = entry
-
-        title_dic[docID] = title
-        date_dic[docID] = date
-        court_dic[docID] = court
-
-        tokens = []
-
-        # process content as per normal
-
-        sentences = sent_tokenize(content)
-
-        for sentence in sentences:
-            tokens.extend([stemmer.stem(token.lower()) for token in word_tokenize(sentence)])
-
-        populate_index(content_dic, tokens, docID)
-
-    # restructure index and write both dictionary and postings to disk
-    write_to_disk(content_dic, out_dict, out_postings)
-
-    print("done indexing")
-
-def build_index_VSM(in_dir, out_dict, out_postings):
-    """
-    Same as homework 3 - to be improved upon (atharv)
-    """
-    print('indexing...')
-
-    # obtain file paths of documents to be indexed
-    file_paths = [f for f in Path(in_dir).iterdir() if f.is_file()]
-
-    # initialise a dictionary to contain the index where key is Term, value is dictionary of Nodes
+    # initialise a dictionary to contain the index where key is the processed token, value is a dictionary of Nodes
     # for the dictionary of Nodes, key is doc_id and value is Node
-    # Term includes the following information - token, document frequency, and pointer to postings list
-    # Node includes the following information - doc_id, positional indices, next node, and skip node
-
-    # TODO: @atharv fyi
-    # We adopt Single-Pass In-Memory Indexing (SPIM) and index directly when a term is encountered.
-    # Correct storage of zone is contingent on the above step.
-    # Clearer for zones to be in Node, because zones are only needed for zone scoring. It does not benefit
-    # To know the zone of a term in isolation.
-
+    # Node class encapsulates doc_id, positional indices (hence tf), next node, and skip node
+    # We adopt Single-Pass In-Memory Indexing (SPIM) and index directly when a term is encountered
+    # Correct storage of zones is contingent on SPIM
+    # the "title" and "court" zones are extracted and stored in separate dictionaries
+    # the "date_published" zone is deemed irrelevant and is not stored
     index = {}
 
-    # initialise dictionary and postings to build index
-    #dictionary = Dictionary(out_dict)
-    #postings = Postings(out_postings)
+    doc_lengths = {}  # dictionary to store doc_lengths, with doc_id as key and doc_length as value
+    titles = {} # dictionary to store titles of all cases, with doc_id as key and title as value
+    courts = {} # dictionary to store courts of all cases, with doc_id as key and court as value
 
-    # TODO: @atharv we also need to decide whether to index words in zones as a phrase, or do we still want to break them up into words.
-    """
-    # Breaking into words means that we might return results where only one word in the query appears in a zone.
-    # Storing as a phrase means we only return when the query matches the zone entry exactly.
-    """
+    # read and process each row in csv file
+    with open(in_file, 'r') as csvfile:
+        file_reader = csv.DictReader(csvfile)
+        for row in file_reader:
+            doc_id = row["document_id"] # extract document ID
+            print("indexing doc " + str(doc_id)) # for debugging
 
-    # dictionary of doc_lengths, with doc_id as key and doc_length as value
-    doc_lengths = {}
+            # collect tokens in current document
+            content = row["content"] # extract case content
+            tokens = collect_tokens(content)
 
-    for file_path in file_paths:
-        # extract and save document ID
-        doc_id = int(file_path.stem)
+            # process all tokens to build index
+            # returns a dictionary of term frequencies to calculate document length
+            term_frequencies = process_tokens(index, tokens, doc_id)
 
-        print("indexing doc " + str(doc_id)) # for debugging
+            # calculate and store document length
+            doc_length = calculate_doc_length([value for value in term_frequencies.values()])
+            doc_lengths[doc_id] = doc_length
 
-        # collect tokens in current document
-        tokens = collect_tokens(str(file_path))
-
-        # process all tokens to get a dictionary of unique terms and their term frequencies in this document
-        term_frequencies = process_tokens(tokens, doc_id, index)
-
-        # calculate and store document length
-        doc_length = calculate_doc_length([value for value in term_frequencies.values()])
-        doc_lengths[doc_id] = doc_length
+            # store metadata
+            title = row["title"] # extract case title
+            titles[doc_id] = title
+            court = row["court"] # extract court
+            courts[doc_id] = court
 
     # write both dictionary and postings to disk
-    write_to_disk(index, out_dict, out_postings)
-
-    #postings.save(dictionary) # updates the pointers in the dictionary as well
-    #dictionary.save(doc_lengths) # saves doc_lengths to disk as well
+    write_to_disk(index, doc_lengths, titles, courts, out_dict, out_postings)
 
     print("done indexing")
 
-input_directory = output_file_dictionary = output_file_postings = None
+dataset_file = output_file_dictionary = output_file_postings = None
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:')
@@ -158,8 +71,8 @@ except getopt.GetoptError:
     sys.exit(2)
 
 for o, a in opts:
-    if o == '-i': # input directory
-        input_directory = a
+    if o == '-i': # input dataset file
+        dataset_file = a
     elif o == '-d': # dictionary file
         output_file_dictionary = a
     elif o == '-p': # postings file
@@ -167,12 +80,12 @@ for o, a in opts:
     else:
         assert False, "unhandled option"
 
-if input_directory == None or output_file_postings == None or output_file_dictionary == None:
+if dataset_file == None or output_file_postings == None or output_file_dictionary == None:
     usage()
     sys.exit(2)
 
 # build_index(input_directory, output_file_dictionary, output_file_postings)
 start_time = time.time()  # clock the run
-build_index_VSM(input_directory, output_file_dictionary, output_file_postings)
+build_index(dataset_file, output_file_dictionary, output_file_postings)
 end_time = time.time()
 print('indexing completed in ' + str(round(end_time - start_time, 2)) + 's')
