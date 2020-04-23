@@ -2,20 +2,16 @@
 A node in the postings list.
 """
 
-class Node(object):
-    def __init__(self, doc_id, ):
+class Node:
+    def __init__(self, doc_id, pos):
         self.doc_id = doc_id
-        self.tf = 1 # first instance of term in doc, updated during indexing
-        self.positions = [] # positional indices, updated during indexing
+        self.positions = [pos] # positional indices, updated during indexing
         self.nextNode = None # next node in order, updated during writing to disk
         self.skipNode = None # skip node, updated during writing to disk
 
     ### Term frequency operations ###
-    def increment_tf(self):
-        self.tf += 1
-
     def get_tf(self):
-        return self.tf
+        return len(self.positions)
 
     ### Positional index operations ###
     def add_position(self, index):

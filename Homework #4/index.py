@@ -101,9 +101,17 @@ def build_index_VSM(in_dir, out_dict, out_postings):
     # obtain file paths of documents to be indexed
     file_paths = [f for f in Path(in_dir).iterdir() if f.is_file()]
 
+    # initialise a dictionary to contain the index where key is Term, value is dictionary of Nodes
+    # for the dictionary of Nodes, key is doc_id and value is Node
+    # Term includes the following information - MANDY TO BE FILLED
+    # Node includes the following information - doc_id, positional indices, next node, and skip node
+    index = {}
+
     # initialise dictionary and postings to build index
-    dictionary = Dictionary(out_dict)
-    postings = Postings(out_postings)
+    #dictionary = Dictionary(out_dict)
+    #postings = Postings(out_postings)
+
+    # dictionary of doc_lengths, with doc_id as key and doc_length as value
     doc_lengths = {}
 
     for file_path in file_paths:
@@ -116,15 +124,17 @@ def build_index_VSM(in_dir, out_dict, out_postings):
         tokens = collect_tokens(str(file_path))
 
         # process all tokens to get a dictionary of unique terms and their term frequencies in this document
-        term_frequencies = process_tokens(tokens, doc_id, dictionary, postings)
+        term_frequencies = process_tokens(tokens, doc_id, index)
 
         # calculate and store document length
         doc_length = calculate_doc_length([value for value in term_frequencies.values()])
         doc_lengths[doc_id] = doc_length
 
     # write both dictionary and postings to disk
-    postings.save(dictionary) # updates the pointers in the dictionary as well
-    dictionary.save(doc_lengths) # saves doc_lengths to disk as well
+    write_to_disk(index, out_dict, out_postings)
+
+    #postings.save(dictionary) # updates the pointers in the dictionary as well
+    #dictionary.save(doc_lengths) # saves doc_lengths to disk as well
 
     print("done indexing")
 
