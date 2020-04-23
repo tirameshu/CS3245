@@ -1,6 +1,6 @@
 import pickle
 
-class Postings(object):
+class Postings:
     def __init__(self, out_file):
         self.out_file = out_file
         self.postings = [] # [{document_ID: term_frequency}]

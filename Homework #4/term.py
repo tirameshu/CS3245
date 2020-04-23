@@ -1,13 +1,15 @@
 """
+A term in the dictionary.
+
 On first encounter of a term, it will be initialised, then added to the dictionary in Index.
 
 Upon further encounters of the same term, it will be updated via the dictionary in Index,
 and if the term appears in more than 1 zone, the next zone will be added to self.zones.
 """
 class Term:
-    def __init__(self, term, zone):
-        self.term = term
-        self.zones = [zone]
+    def __init__(self, token, zone):
+        self.token = token # the stemmed token associated with this term
+        self.zones = [zone] # which zone of the document the term is found in
         self.df = 0
         self.pointer = 0
 
@@ -24,3 +26,9 @@ class Term:
 
     def assign_pointer(self, pointer):
         self.pointer = pointer
+
+    def get_token(self):
+        return self.token
+
+    def get_zones(self):
+        return self.zones

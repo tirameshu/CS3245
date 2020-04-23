@@ -5,6 +5,8 @@ from collections import defaultdict
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
 from nltk.stem import PorterStemmer
+from node import Node
+from term import Term
 
 
 def collect_tokens(file_path_string):
@@ -31,7 +33,7 @@ def collect_tokens(file_path_string):
 
     return tokens
 
-def process_tokens(tokens, doc_id, dictionary, postings):
+def process_tokens(tokens, doc_id, index):
     """
     Updates dictionary and postings with information from each token in the given list of tokens. Returns a mapping of
     all unique terms in this document along with their term frequencies.
@@ -42,24 +44,33 @@ def process_tokens(tokens, doc_id, dictionary, postings):
     @param postings postings to be updated
     @return a dictionary consisting of unique terms and their term frequencies
     """
-    term_frequencies = defaultdict(int)
+    term_frequencies = defaultdict(int) # to calculate doc_length
 
-    for token in tokens:
+    for pos in range(len(tokens)): # pos refers to positional index of a token in the document
+        token = tokens[pos]
         term_frequencies[token] += 1
 
-        if dictionary.has_term(token):
-            # if token exists in dictionary, update postings
+        if token in index:
+            # if token exists in index, update its Nodes
+            if doc_id in index[token]:
+                # if doc_id exists among the token's Nodes, update that Node with positional index
+                index[token][doc_id].add_position(pos)
+            else:
+                # doc_id does not exist among the token's Nodes, create a new Node
+                index[token][doc_id] = Node(doc_id, pos)
 
-            postings_index = dictionary.get_pointer(token)
-            df_has_changed = postings.update_entry(doc_id, postings_index) # returns true if df of token changed
-            if df_has_changed:
-                dictionary.increment_df(token)
+            #postings_index = dictionary.get_pointer(token)
+            #df_has_changed = postings.update_entry(doc_id, postings_index) # returns true if df of token changed
+            #if df_has_changed:
+            #dictionary.increment_df(token)
 
         else:
-            # if token does not exist in dictionary, create entry in dictionary and postings
-            postings.add_entry(doc_id)
-            postings_index = postings.get_length() - 1
-            dictionary.add_unique_term(token, postings_index)
+            # if token does not exist in index, create new entry in index
+            index[token] = {doc_id : Node(doc_id, pos)}
+
+            #postings.add_entry(doc_id)
+            #postings_index = postings.get_length() - 1
+            #dictionary.add_unique_term(token, postings_index)
 
     return term_frequencies
 

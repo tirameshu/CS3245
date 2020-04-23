@@ -1,6 +1,6 @@
 import pickle
 
-class Dictionary(object):
+class Dictionary:
     def __init__(self, out_file):
         self.out_file = out_file
         self.terms = {} # key - term, value - [document_frequency, pointer_to_postings_list]
