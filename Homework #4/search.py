@@ -18,6 +18,7 @@ def usage():
 
 zone_weights = []
 
+# TODO: skip pointer and all
 def and_search(p1, p2):
     result = []
     i, j = 0, 0
@@ -38,19 +39,31 @@ def and_search(p1, p2):
 #    return (n_10r + n_01n) / (n_10r + n_10n + n_01r + n_01n)
 
 """
-:param node: contains docID, term, fields and corresponding boolean values
-for whether it contains the term, etc
+:param node: contains docID, positional indices, next node, skip node
+fields and corresponding boolean values
+
 :param zone_weights: weights given to each zone to be multiplied with boolean
 :return zone_score: sum of zone_score for each zone
 """
-def get_weighted_zone(node, zone_weights): # TODO: @atharv, depends on your implementation
+def get_weighted_zone(node, zone_weights): # TODO: @atharv check node param aboe and implementation below
     """
     implementation 1: every zone contains a boolean value
 
     implementation 2: node has attributes "in_metadata" and "in_body",
     with boolean values for both, so calculation is only done based on these two.
     """
-    pass
+    # assuming implementation 2
+
+    return node.in_metadata * zone_weights[0] + node.in_body * zone_weights[1]
+
+"""
+Assumes common document for two tokens have been found, and the corresponding postings lists are being used.
+
+:param positions1: a list of positions for token1 in common doc
+:param positions2: a list of positions for token2 in common doc
+"""
+# TODO: @atharv to check if u want positions to also be some ADT hahaha if not we need compare primitively with array index
+#  Orrrr we could have each Node be docID + position, so new Node not just for a different doc, but a different position as well.
 
 def get_consecutives(positions1, positions2):
     result = []
@@ -76,8 +89,10 @@ def get_consecutives(positions1, positions2):
     return result
 
 """
-:param phrase: list of (processed) query terms
-:param postings: dictionary of terms and their positions for each doc
+:param phrase: list of query tokens
+:param postings: dictionary of terms and their positions for each doc,
+assumes a list has alr been obtained for all query tokens
+
 :return result: list of docs containing the phrase
 """
 def phrasal_query(phrase, postings):
@@ -97,39 +112,39 @@ def phrasal_query(phrase, postings):
     2-way merge: take first 2 terms to look through positions first, then add another
     """
 
-    # adding the docs and corresponding positions for all query terms
+    # adding the docs and corresponding positions for all query tokens
     # needs to be refreshed for every new query
 
     phrase_postings = []
 
-    for term in phrase:
-        if term in postings:
-            phrase_postings.append(postings[term]) # returns a dictionary
-        # TODO: If any of the query terms is not in postings, should we not return anything or still return based on whatever's left?
+    for token in phrase:
+        if token in postings:
+            phrase_postings.append(postings[token]) # returns a dictionary
+        # TODO: @atharv if any of the query tokens is not in postings, should we not return anything or still return based on whatever's left?
 
     if phrase_postings:
         result = phrase_postings[0]
-        # compare 2-way at a time, only need to compare w the term before
+        # compare 2-way at a time, only need to compare w the token before
         for i in range (1, len(phrase_postings)): # TODO assuming for now a normal case only
-            term1_docs = result
-            term2_docs = phrase_postings[i]
+            token1_docs = result
+            token2_docs = phrase_postings[i]
 
             # find intersection of docs
-            shared_docs = set(term1_docs.keys()).intersection(set(term2_docs.keys()))
+            shared_docs = set(token1_docs.keys()).intersection(set(token2_docs.keys()))
 
             temp = {} # after looking through docs containing the exact phrase
 
             for doc in shared_docs:
-                p1 = term1_docs[doc]
-                p2 = term2_docs[doc]
+                p1 = token1_docs[doc]
+                p2 = token2_docs[doc]
 
                 temp[doc] = get_consecutives(p1, p2) # can be empty list, but maintain same format for future merging
 
             result = temp
 
-        return result # dictionary of docs with a list of the positions of the last query term
+        return result # dictionary of docs with a list of the positions of the last query token
 
-    else: # if no term in phrase is in dictionary
+    else: # if no token in phrase is in dictionary
         return []
 
 """
@@ -148,7 +163,7 @@ posting = {
 
 """
 For query containing AND: we will first merge the posting lists of
-all query terms, then conduct zone-scoring.
+all query tokens, then conduct zone-scoring.
 
 As such, regardless of boolean search or free text search or phrasal search,
 zone-scoring only takes in 1 list of nodes, which is already the list of docIDs
@@ -156,28 +171,34 @@ to return to user.
 
 This step is just to rank the docIDs. 
 
-:param posting: posting list
+:param nodes: a list of Nodes already retrieved based on query
 
 :return scores: a dictionary of { docID: zone_score }
 """
-def get_zone_score(posting):
+def get_zone_score(nodes):
     scores = {}
-    for i in range (len(posting)):
-        node = posting[i]
+    for i in range (len(nodes)):
+        node = nodes[i]
         scores[node.docID] = get_weighted_zone(node, zone_weights)
 
+    # TODO: sort by score
     return scores
 
 def run_search(dict_file, postings_file, queries_file, results_file):
     """
     Same as homework 3 - to be improved upon (atharv)
     """
+    # TODO: @atharv to update
     dictionary = Dictionary(dict_file)
     postings = Postings(postings_file)
 
     # parse and evaluate each query and write results to disk one by one
     with open(queries_file, 'r') as q, open(results_file, 'w') as r:
         queries = q.read().splitlines()
+
+        # TODO: @atharv do we want to only retrieve the posting when evaluating each query
+        #  (thereafter storing the posting obtained in a dictionary here) or
+        #  we retrieve for all query tokens in a single query here from the start
         for query in queries:
             print("processing " + query + "...")
             parsed_query = parse_query(query)

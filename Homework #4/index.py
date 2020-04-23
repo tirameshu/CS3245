@@ -27,8 +27,6 @@ adds all positions for that doc to index.
 """
 
 def populate_index(index, tokens, docID):
-    # TODO: consider adding count as well?
-
     for token in tokens:
         index[docID] = set(i for i in tokens if tokens[i] == token)
 
@@ -103,13 +101,26 @@ def build_index_VSM(in_dir, out_dict, out_postings):
 
     # initialise a dictionary to contain the index where key is Term, value is dictionary of Nodes
     # for the dictionary of Nodes, key is doc_id and value is Node
-    # Term includes the following information - token, zone,  df, pointer to postings
+    # Term includes the following information - token, document frequency, and pointer to postings list
     # Node includes the following information - doc_id, positional indices, next node, and skip node
+
+    # TODO: @atharv fyi
+    # We adopt Single-Pass In-Memory Indexing (SPIM) and index directly when a term is encountered.
+    # Correct storage of zone is contingent on the above step.
+    # Clearer for zones to be in Node, because zones are only needed for zone scoring. It does not benefit
+    # To know the zone of a term in isolation.
+
     index = {}
 
     # initialise dictionary and postings to build index
     #dictionary = Dictionary(out_dict)
     #postings = Postings(out_postings)
+
+    # TODO: @atharv we also need to decide whether to index words in zones as a phrase, or do we still want to break them up into words.
+    """
+    # Breaking into words means that we might return results where only one word in the query appears in a zone.
+    # Storing as a phrase means we only return when the query matches the zone entry exactly.
+    """
 
     # dictionary of doc_lengths, with doc_id as key and doc_length as value
     doc_lengths = {}

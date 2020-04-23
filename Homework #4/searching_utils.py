@@ -23,62 +23,65 @@ def evaluate_query(query, dictionary, postings):
     most relevant documents.
     """
     # retrieve document lengths and vocabulary
+    # TODO: @atharv arent we supposed to store the return value of load() as a variable?
     dictionary.load()
 
-    # build query_vector with key: term, value: normalised w_tq of term
+    # build query_vector with key: token, value: normalised w_tq of token
     query_vector = build_query_vector(query, dictionary)
 
     # calculate scores with key: docID, value: cosine score of document corresponding to docID
     scores = calculate_cosine_scores(query_vector, dictionary, postings)
 
-    # return top ten highest scores as a list
-    top_scores = heapq.nlargest(min(len(scores), no_of_results), scores.items(), key=lambda i: i[1])
-    top_docs = [score[0] for score in top_scores]
+    # TODO: sort scores by cosine score
 
-    return top_docs
+    # return top ten highest scores as a list
+    # top_scores = heapq.nlargest(min(len(scores), no_of_results), scores.items(), key=lambda i: i[1])
+    # top_docs = [score[0] for score in top_scores]
+
+    return scores
 
 def build_query_vector(query, dictionary):
     """
     Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
-    @return query vector containing dictionary term as key and normalised w_tq of term as value
+    @return query vector containing dictionary token as key and normalised w_tq of token as value
     """
-    query_vector = {} # key: term, value: normalised w_tq of term
+    query_vector = {} # key: token, value: normalised w_tq of token
 
-    # calculate term frequency
-    for term in query:
-        if term in query_vector:
-            query_vector[term] += 1
+    # calculate token frequency
+    for token in query:
+        if token in query_vector:
+            query_vector[token] += 1
         else:
-            query_vector[term] = 1
+            query_vector[token] = 1
 
-    # calculate weighted term frequency
+    # calculate weighted token frequency
     N = dictionary.get_no_of_docs() # N is the total number of documents in the corpus
     w_tq_running_total = 0  # for calculating query length
-    for term in query_vector:
+    for token in query_vector:
         # get df
-        df = dictionary.get_df(term)
+        df = dictionary.get_df(token)
 
         # calculate idf
         idf = 0 if (df == 0) else math.log((N / df), 10)
 
-        # calculate logarithmic term frequency
-        tf = query_vector[term]
+        # calculate logarithmic token frequency
+        tf = query_vector[token]
         ltf = 1 + math.log(tf, 10)
 
-        # calculate and store weighted term frequency
+        # calculate and store weighted token frequency
         w_tq = ltf * idf
-        query_vector[term] = w_tq
+        query_vector[token] = w_tq
 
         # update w_tq running total for calculating query length
         w_tq_running_total += w_tq ** 2
 
-    # calculate normalised weighted term frequency
+    # calculate normalised weighted token frequency
     query_length = math.sqrt(w_tq_running_total)
-    for term in query_vector:
+    for token in query_vector:
         if query_length: # check for zero query length
-            query_vector[term] /= query_length
+            query_vector[token] /= query_length
         else:
-            query_vector[term] = 0
+            query_vector[token] = 0
 
     return query_vector
 
@@ -89,23 +92,23 @@ def calculate_cosine_scores(query_vector, dictionary, postings):
     """
     scores = {} # key: docID, value: cosine score
 
-    for term in query_vector:
-        if dictionary.has_term(term):
-            pointer = dictionary.get_pointer(term)
+    for token in query_vector:
+        if dictionary.has_token(token):
+            pointer = dictionary.get_pointer(token)
             postings_list = postings.load(pointer)
 
             for posting in postings_list:
                 docID = posting[0]
 
-                # calculate weighted term frequency
+                # calculate weighted token frequency
                 tf = posting[1]
                 ltf = 1 + math.log(tf, 10)
 
                 # update scores
                 if docID in scores:
-                    scores[docID] += ltf * query_vector[term]
+                    scores[docID] += ltf * query_vector[token]
                 else:
-                    scores[docID] = ltf * query_vector[term]
+                    scores[docID] = ltf * query_vector[token]
 
     # normalise all scores by dividing by document length
     for docID, score in scores.items():

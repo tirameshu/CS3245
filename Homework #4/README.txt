@@ -13,7 +13,7 @@ We're using Python Version 3.7.4 for this assignment.
 2. We index title, content, date and court as separate dictionaries, as each `in` search is O(1), so searching
 with separate dictionaries is effectively O(1), rather than looping through all docs.
 
-3. Posting: { Doc_Class: [list of positions] }
+3. Posting: { Node: [list of positions] }
 
 ----------------
 
