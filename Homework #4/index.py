@@ -103,7 +103,7 @@ def build_index_VSM(in_dir, out_dict, out_postings):
 
     # initialise a dictionary to contain the index where key is Term, value is dictionary of Nodes
     # for the dictionary of Nodes, key is doc_id and value is Node
-    # Term includes the following information - MANDY TO BE FILLED
+    # Term includes the following information - token, zone,  df, pointer to postings
     # Node includes the following information - doc_id, positional indices, next node, and skip node
     index = {}
 
