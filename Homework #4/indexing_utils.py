@@ -6,6 +6,7 @@ from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
 from nltk.stem import PorterStemmer
 from node import Node
+from term import Term
 
 
 def collect_tokens(file_path_string):
