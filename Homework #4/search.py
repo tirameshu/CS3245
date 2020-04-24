@@ -228,9 +228,6 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     with open(queries_file, 'r') as q, open(results_file, 'w') as r:
         queries = q.read().splitlines()
 
-        # TODO: @atharv do we want to only retrieve the posting when evaluating each query
-        #  (thereafter storing the posting obtained in a dictionary here) or
-        #  we retrieve for all query tokens in a single query here from the start
         for query in queries:
             print("processing " + query + "...")
             parsed_query = parse_query(query)
