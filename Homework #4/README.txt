@@ -20,7 +20,16 @@ with separate dictionaries is effectively O(1), rather than looping through all 
         { (str) token: (int) docID: (Node) node }, where the node will store a list of positions of the token in the document.
     3.3 Then we store the information of zones `title` and `court` in separate dictionaries.
 
-Posting: { Node: [list of positions] } TODO: to update
+4. We then write the index dictionary to disc.
+    4.1 We start by extracting all the nodes (containing docID and positions of the token in the doc),
+        then updating their skip pointers and adjacent node.
+    4.2 We then create a Term for each token, and assign it the corresponding document frequency (df) and
+        pointer to its posting.
+    4.3 All the indexing information is thus stored as:
+        { Term1: [ Node1, Node2, ...]
+          Term2: [ Node1, Node2, ...]
+          ...
+        } with `Term`s in dictionary.txt and `Node`s in postings.txt
 
 ----------------
 
