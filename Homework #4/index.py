@@ -32,8 +32,7 @@ def build_index(in_file, out_dict, out_postings):
     index = {}
 
     doc_lengths = {}  # dictionary to store doc_lengths, with doc_id as key and doc_length as value
-    titles = {} # dictionary to store titles of all cases, with doc_id as key and title as value
-    courts = {} # dictionary to store courts of all cases, with doc_id as key and court as value
+    metadata = {} # dictionary to store metadata, with doc_id as key and list containing title, date, and court as value
 
     # read and process each row in csv file
     with open(in_file, 'r', errors='ignore') as csvfile:
@@ -57,12 +56,12 @@ def build_index(in_file, out_dict, out_postings):
 
             # store metadata
             title = row["title"] # extract case title
-            titles[doc_id] = title
+            date = row["date_posted"].split(" ")[0] # extract date posted (ignore time)
             court = row["court"] # extract court
-            courts[doc_id] = court
+            metadata[doc_id] = [title, date, court]
 
     # write both dictionary and postings to disk
-    write_to_disk(index, doc_lengths, titles, courts, out_dict, out_postings)
+    write_to_disk(index, doc_lengths, metadata, out_dict, out_postings)
 
     print("done indexing")
 

@@ -24,9 +24,11 @@ def collect_tokens(data):
     for sentence in sentences:
         words = word_tokenize(sentence) # word tokenizing
         for word in words:
-            word = word.lower() # case folding
-            word = stemmer.stem(word) # stemming
-            tokens.append(word)
+            # only process alphanumeric tokens
+            if word.isalphanum():
+                word = word.lower() # case folding
+                word = stemmer.stem(word) # stemming
+                tokens.append(word)
 
     return tokens
 
@@ -70,22 +72,26 @@ def calculate_doc_length(tfs):
         sum += (1 + math.log(tf, 10))**2 # tf is guaranteed to be at least 1
     return math.sqrt(sum)
 
-def write_to_disk(index, doc_lengths, titles, courts, out_dict, out_postings):
+def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
     """
     Writes postings and dictionary to disk
 
     :param index the index from which postings and dictionary are to be extracted
     :param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
-    :param titles dictionary of titles to be written to dictionary file in disk
-    :param courts dictionary of courts to be written to dictionary file in disk
+    :param metadata dictionary of metadata to be written to dictionary file in disk
     :param out_dict target output file to write dictionary to
     :param out_postings target output file to write postings to
     """
+    print("writing to disk") # for debugging
+
     terms = []  # list of Terms to be written to dictionary in disk
 
     # write postings to disk
     with open(out_postings, 'wb') as postings:
+        print("writing postings to disk")  # for debugging
         for token in index:
+            print("writing postings for " + token)  # for debugging
+
             # obtain postings list of Nodes sorted by doc_id
             postings_list = [entry[1] for entry in sorted(index[token].items())] # entry[1] corresponds to Node
 
@@ -100,12 +106,12 @@ def write_to_disk(index, doc_lengths, titles, courts, out_dict, out_postings):
             pickle.dump(postings_list, postings)  # save postings to disk
 
     # write dictionary to disk
-    # the pickled dictionary file contains the following data in order - doc_lengths, titles, courts, terms
+    # the pickled dictionary file contains the following data in order - doc_lengths, terms, metadata
     with open(out_dict, 'wb') as dictionary:
+        print("writing dictionary to disk")  # for debugging
         pickle.dump(doc_lengths, dictionary)
-        pickle.dump(titles, dictionary)
-        pickle.dump(courts, dictionary)
         pickle.dump(terms, dictionary)
+        pickle.dump(metadata, dictionary)
 
 def update_nodes(postings):
     """
