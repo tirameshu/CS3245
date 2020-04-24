@@ -38,7 +38,7 @@ def build_index(in_file, out_dict, out_postings):
     with open(in_file, 'r', errors='ignore') as csvfile:
         file_reader = csv.DictReader(csvfile)
         # the values in the first row of file f are used as fieldnames
-        count = 0
+        count = 0 # count number of docs indexed for debugging
         for row in file_reader:
             count += 1
             doc_id = int(row["document_id"]) # extract document ID

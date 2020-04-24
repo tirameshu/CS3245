@@ -211,14 +211,22 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     @param queries_file the file containing the query
     @param results_file the file to write the results to
     """
+    # load contents from dictionary saved to disk
+    with open(dict_file, 'rb') as dict:
+        # retrieve document lengths and vocabulary
+        doc_lengths = pickle.load(dict)
+        dictionary = pickle.load(dict) # contains a list of Term objects
+        metadata = pickle.load(dict)
+
     with open(queries_file, 'r') as query_file:
         query_content = query_file.read().splitlines()
         query = query_content[0] # first line in query file is the query
 
         # evaluate query to obtain results
         parsed_query = parse_query(query)
-        results = evaluate_query(parsed_query, dict_file, postings_file)
+        results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
         result_string = " ".join(str(i) for i in results)
+        # TODO order relevant documents by processing metadata
 
     with open(results_file, 'w') as result_file:
         result_file.write(result_string + '\n')
