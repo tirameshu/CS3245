@@ -10,10 +10,17 @@ We're using Python Version 3.7.4 for this assignment.
 ==== Index ===
 1. We assume that the full path of directory of documents is specified as input argument -i while indexing
 
-2. We index title, content, date and court as separate dictionaries, as each `in` search is O(1), so searching
+2. We index title, content and court as separate dictionaries, as each `in` search is O(1), so searching
 with separate dictionaries is effectively O(1), rather than looping through all docs.
 
-3. Posting: { Node: [list of positions] }
+3. We parse one doc at a time (one row of the csv file at a time), extracting the relevant zones that we intend to store.
+    3.1 `collect_tokens` is first called to tokenise and stem the terms in the document.
+    3.2 `process_tokens` is then called to capture the term_frequency (tf) of each term in the current document,
+        and tf is stored in a separate dictionary `term_frequencies`, in the format of
+        { (str) token: (int) docID: (Node) node }, where the node will store a list of positions of the token in the document.
+    3.3 Then we store the information of zones `title` and `court` in separate dictionaries.
+
+Posting: { Node: [list of positions] } TODO: to update
 
 ----------------
 

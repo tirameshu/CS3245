@@ -13,7 +13,7 @@ def collect_tokens(data):
     """
     Collects all tokens from a given data string after performing tokenizing, case folding, and stemming.
 
-    @param data data string to be tokenized
+    :param data data string to be tokenized
     """
     tokens = []
     stemmer = PorterStemmer() # use Porter stemmer for stemming
@@ -34,10 +34,10 @@ def process_tokens(index, tokens, doc_id):
     Updates index with information from each token in the given list of tokens. Returns a mapping of
     all unique terms in this document along with their term frequencies.
 
-    @param index index to be updated
-    @param tokens the tokens to be processed
-    @param doc_id the document ID of the document the tokens are found in
-    @return a dictionary consisting of unique terms and their term frequencies for calculating document length
+    :param index index to be updated
+    :param tokens the tokens to be processed
+    :param doc_id the document ID of the document the tokens are found in
+    :return a dictionary consisting of unique terms and their term frequencies for calculating document length
     """
     term_frequencies = defaultdict(int) # to calculate doc_length
 
