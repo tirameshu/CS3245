@@ -17,9 +17,10 @@ def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
 
 """
-:param query: list of stemmed query tokens
+:param query: list of stemmed query tokens, phrasal searches given as a phrase without quotation but with space
 """
 def boolean_search(query_tokens):
+    pass
 
 """
 :param lst1: list of Nodes from the first part of AND

@@ -26,10 +26,14 @@ with separate dictionaries is effectively O(1), rather than looping through all 
     4.2 We then create a Term for each token, and assign it the corresponding document frequency (df) and
         pointer to its posting.
     4.3 All the indexing information is thus stored as:
-        { Term1: [ Node1, Node2, ...]
-          Term2: [ Node1, Node2, ...]
+        { Term1: { docID1: [positions1] }
+          Term2: { docID2: [positions2] }
           ...
-        } with `Term`s in dictionary.txt and `Node`s in postings.txt
+        } with `Term`s in dictionary.txt and { docID: [positions] } is in postings.txt
+
+5. We initially implemented a Node class to facilitate skip pointers, but it takes up too much space,
+    to the point where indexing resulted in Segmentation Fault. Therefore, we removed it and instead simply stored
+    a dictionary of docID and positions.
 
 ----------------
 
