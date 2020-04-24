@@ -15,56 +15,39 @@ def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
 
 """
-:param query: list of stemmed query tokens
+:param query: list of stemmed query tokens, phrasal searches given as a phrase without quotation but with space
+:param postings: dictionary of { docID: [positions] }
+:return temp1: list of docIDs
 """
-def boolean_search(query_tokens):
-    """
-    :param lst1: list of Nodes from the first part of AND
-    :param lst2: list of Nodes from the second part of AND
-    """
-def and_merge(lst1, lst2):
-    # first take care of edge cases
-    if not lst1 and not lst2:
-        return []
 
-    if lst1 and not lst2:
-        return lst1
+def boolean_search(query_tokens, postings):
+    temp1 = []
+    for token in query_tokens:
+        if " " in token:
+            # token is a phrase
+            dic2 = phrasal_query(token, postings)
 
-    if lst2 and not lst1:
-        return lst2
-
-    # normal use case
-
-    node1 = lst1[0]
-    node2 = lst2[0]
-    result = []
-
-    while node1.has_skip() and node2.has_skip():
-        if node1.get_doc_id() < node2.get_doc_id():
-            if node1.has_skip():
-                skip_node = node1.get_skip()
-                if skip_node.get_doc_id() < node2.get_doc_id(): # utilise skip pointer
-                    node1 = skip_node
-                else:
-                    node1 = node1.get_next()
-            else:
-                node1 = node1.get_next()
-
-        elif node2.get_doc_id() < node1.get_doc_id():
-            if node2.has_skip():
-                skip_node = node2.get_skip()
-                if skip_node.get_doc_id() < node1.get_doc_id():  # utilise skip pointer
-                    node2 = skip_node
-                else:
-                    node2 = node2.get_next()
-            else:
-                node2 = node2.get_next()
         else:
-            result.append(node1) # save node
-            node1 = node1.get_next()
-            node2 = node2.get_next()
+            # a single word
+            dic2 = postings[token]
 
-    return result
+        # boolean query only cares about whether token is in doc,
+        # disregards positions
+        temp2 = list(dic2.keys())
+
+        # result is reused in next iteration, merged with next token
+        temp1 = and_merge(temp1, temp2)
+
+    return temp1
+
+"""
+:param lst1: list of Nodes from the first part of AND
+:param lst2: list of Nodes from the second part of AND
+:return: list of docIDs
+"""
+
+def and_merge(lst1, lst2):
+    return list(set(lst1).intersection(set(lst2)))
 
 """
 :param node: contains docID, positional indices, next node, skip node
@@ -118,7 +101,7 @@ def get_consecutives(positions1, positions2):
 :param postings: dictionary of terms and their positions for each doc,
 assumes a list has alr been obtained for all query tokens
 
-:return result: list of docs containing the phrase
+:return result: dictionary of { docID: [positions] }
 """
 def phrasal_query(query_tokens, postings):
     """
@@ -180,7 +163,7 @@ def phrasal_query(query_tokens, postings):
                       # positions of the other words are correct
 
     else: # if no token in phrase is in dictionary
-        return []
+        return {}
 
 """
 posting = {
