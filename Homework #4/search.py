@@ -18,9 +18,26 @@ def usage():
 
 """
 :param query: list of stemmed query tokens, phrasal searches given as a phrase without quotation but with space
+:param postings: dictionary of { docID: [positions] }
 """
-def boolean_search(query_tokens):
-    pass
+def boolean_search(query_tokens, postings):
+    temp1 = []
+    for token in query_tokens:
+        if " " in token:
+            # token is a phrase
+            dic2 = phrasal_query(token, postings)
+
+        else:
+            # a single word
+            dic2 = postings[token]
+
+        # boolean query only cares about whether token is in doc,
+        # disregards positions
+        temp2 = list(dic2.keys())
+
+        # result is reused in next iteration, merged with next token
+        temp1 = and_merge(temp1, temp2)
+
 
 """
 :param lst1: list of Nodes from the first part of AND
@@ -122,7 +139,7 @@ def get_consecutives(positions1, positions2):
 :param postings: dictionary of terms and their positions for each doc,
 assumes a list has alr been obtained for all query tokens
 
-:return result: list of docs containing the phrase
+:return result: dictionary of { docID: [positions] }
 """
 def phrasal_query(query_tokens, postings):
     """
@@ -184,7 +201,7 @@ def phrasal_query(query_tokens, postings):
                       # positions of the other words are correct
 
     else: # if no token in phrase is in dictionary
-        return []
+        return {}
 
 """
 posting = {

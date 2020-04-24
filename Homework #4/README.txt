@@ -115,4 +115,3 @@ printed) from the discussions.
 
 == References ==
 Introduction to Information Retrieval Textbook Chapter 6 p3-7 for zone scoring algorithm and understanding,
-as well as formula for the optimal value of `g`.
