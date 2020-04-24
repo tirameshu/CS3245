@@ -43,7 +43,7 @@ def build_index(in_file, out_dict, out_postings):
             count += 1
             if (count == 1000):
                 break
-            doc_id = row["document_id"] # extract document ID
+            doc_id = int(row["document_id"]) # extract document ID
             print("indexing doc " + str(doc_id) + " " + str(count)) # for debugging
 
             # collect tokens in current document

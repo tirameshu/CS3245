@@ -15,6 +15,11 @@ def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
 
 """
+:param query: list of stemmed query tokens
+"""
+def boolean_search(query_tokens):
+
+"""
 :param lst1: list of Nodes from the first part of AND
 :param lst2: list of Nodes from the second part of AND
 """
@@ -110,13 +115,13 @@ def get_consecutives(positions1, positions2):
     return result
 
 """
-:param phrase: list of query tokens
+:param query_tokens: list of stemmed query tokens
 :param postings: dictionary of terms and their positions for each doc,
 assumes a list has alr been obtained for all query tokens
 
 :return result: list of docs containing the phrase
 """
-def phrasal_query(phrase, postings):
+def phrasal_query(query_tokens, postings):
     """
     postings:
     {
@@ -132,14 +137,13 @@ def phrasal_query(phrase, postings):
 
     simplified_posting = {}
     # only store { token: { docID: [positions] } }
-    for term in postings:
-        token = term.get_token()
+    for token in query_tokens:
         if token not in simplified_posting:
             simplified_posting[token] = {}
 
         docs = simplified_posting[token]
 
-        for node in postings[term]:
+        for node in postings[token]:
             docID = node.get_doc_id() # should only encounter each docID once
             docs[docID] = node.get_positions()
 
@@ -147,13 +151,14 @@ def phrasal_query(phrase, postings):
     # needs to be refreshed for every new query
     phrase_postings = []
 
-    for token in phrase:
+    for token in query_tokens:
         if token in simplified_posting:
             phrase_postings.append(simplified_posting[token]) # returns a dictionary of { docID : positions }
             # words not in dictionary are ignored
 
     if phrase_postings:
-        result = phrase_postings[0]
+        result = phrase_postings[0] # in case there's only one word in the phrase that is in the dict
+
         # compare 2-way at a time, only need to compare w the token before
         for i in range (1, len(phrase_postings)): # TODO assuming for now a normal case only
             token1_docs = result
@@ -172,7 +177,8 @@ def phrasal_query(phrase, postings):
 
             result = temp
 
-        return result # dictionary of docs with a list of the positions of the last query token
+        return result # dictionary of docs with a list of the positions of the last query token, after making sure the
+                      # positions of the other words are correct
 
     else: # if no token in phrase is in dictionary
         return []
@@ -205,14 +211,14 @@ This step is just to rank the docIDs.
 
 :return scores: a dictionary of { docID: zone_score }
 """
-def get_zone_score(nodes):
-    scores = {}
-    for i in range (len(nodes)):
-        node = nodes[i]
-        scores[node.docID] = get_weighted_zone(node, zone_weights)
-
-    # TODO: sort by score
-    return scores
+# def get_zone_score(nodes):
+#     scores = {}
+#     for i in range (len(nodes)):
+#         node = nodes[i]
+#         scores[node.docID] = get_weighted_zone(node, zone_weights)
+#
+#     # need sort by score
+#     return scores
 
 def run_search(dict_file, postings_file, queries_file, results_file):
     """
@@ -225,6 +231,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     """
     with open(queries_file, 'r') as query_file:
         query_content = query_file.read().splitlines()
+<<<<<<< HEAD
         query = query_content[0] # first line in query file is the query
 
         # evaluate query to obtain results
@@ -234,6 +241,21 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
     with open(results_file, 'w') as result_file:
         result_file.write(result_string + '\n')
+=======
+        query = query_content.pop(0) # first line in query file is the query
+        relevance_judgements = query_content # remaining entries in query_content are the given relevance judgements
+
+    # parse and evaluate each query and write results to disk one by one
+    with open(queries_file, 'r') as q, open(results_file, 'w') as r:
+        queries = q.read().splitlines()
+
+        for query in queries:
+            print("processing " + query + "...")
+            parsed_query = parse_query(query)
+            results = evaluate_query(parsed_query, dictionary, postings)
+            result_string = " ".join(str(i) for i in results)
+            r.write(result_string + '\n')
+>>>>>>> 54e9b72742e6deadae90c2743f9ed3e07b59375a
 
 dictionary_file = postings_file = file_of_queries = output_file_of_results = None
 
