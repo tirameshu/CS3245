@@ -5,7 +5,6 @@ from nltk.tokenize import sent_tokenize
 from nltk.stem import PorterStemmer
 import pickle
 
-from node import Node
 from term import Term
 from nltk.corpus import stopwords
 
@@ -53,15 +52,15 @@ def process_tokens(index, tokens, doc_id):
         if token in index:
             # if token exists in index, update its dictionary of Nodes
             if doc_id in index[token]:
-                # if Node exists in index, update that Node with positional index
-                index[token][doc_id].add_position(pos)
+                # if docID exists in index, add pos to its list
+                index[token][doc_id].append(pos)
             else:
-                # add Node to index
-                index[token][doc_id] = Node(doc_id, pos)
+                # add docID to index
+                index[token][doc_id] = [pos]
 
         else:
             # if token does not exist in index, create new entry in index
-            index[token] = {doc_id : Node(doc_id, pos)}
+            index[token] = {doc_id : []}
 
     return term_frequencies
 
@@ -94,11 +93,9 @@ def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
         for token in index:
             print("writing postings for " + token)  # for debugging
 
-            print("obtaining postings list of Nodes sorted by doc_id")
-            postings_list = [entry[1] for entry in sorted(index[token].items())] # entry[1] corresponds to Node
-
-            print("update next and skip Nodes for each Node in postings list")
-            update_nodes(postings_list)
+            # { docID: positions } converted to tuples and sorted by doc_id
+            # then dict reconstructed from it
+            postings_list = dict((k, v) for k, v in sorted(index[token].items(), key=lambda x:x[0]))
 
             # extract Term information such as document frequency and pointer to postings
             df = len(index[token])

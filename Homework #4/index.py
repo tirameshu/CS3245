@@ -41,8 +41,7 @@ def build_index(in_file, out_dict, out_postings):
         count = 0
         for row in file_reader:
             count += 1
-            if (count == 10000):
-                break
+
             doc_id = int(row["document_id"]) # extract document ID
             print("indexing doc " + str(doc_id) + " " + str(count)) # for debugging
 
