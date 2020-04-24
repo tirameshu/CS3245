@@ -7,6 +7,7 @@ import time
 from indexing_utils import collect_tokens, process_tokens, calculate_doc_length, write_to_disk
 
 csv.field_size_limit(1048576) # increase field size limit, number is eight times default limit, found by trial & error
+sys.setrecursionlimit(100000) # increase to enable write to disk using pickle
 
 def usage():
     print("usage: " + sys.argv[0] + " -i dataset-file -d dictionary-file -p postings-file")
@@ -31,8 +32,7 @@ def build_index(in_file, out_dict, out_postings):
     index = {}
 
     doc_lengths = {}  # dictionary to store doc_lengths, with doc_id as key and doc_length as value
-    titles = {} # dictionary to store titles of all cases, with doc_id as key and title as value
-    courts = {} # dictionary to store courts of all cases, with doc_id as key and court as value
+    metadata = {} # dictionary to store metadata, with doc_id as key and list containing title, date, and court as value
 
     # read and process each row in csv file
     with open(in_file, 'r', errors='ignore') as csvfile:
@@ -56,12 +56,12 @@ def build_index(in_file, out_dict, out_postings):
 
             # store metadata
             title = row["title"] # extract case title
-            titles[doc_id] = title
+            date = row["date_posted"].split(" ")[0] # extract date posted (ignore time)
             court = row["court"] # extract court
-            courts[doc_id] = court
+            metadata[doc_id] = [title, date, court]
 
     # write both dictionary and postings to disk
-    write_to_disk(index, doc_lengths, titles, courts, out_dict, out_postings)
+    write_to_disk(index, doc_lengths, metadata, out_dict, out_postings)
 
     print("done indexing")
 
