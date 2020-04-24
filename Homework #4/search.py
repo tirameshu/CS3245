@@ -18,11 +18,10 @@ def usage():
 :param query: list of stemmed query tokens
 """
 def boolean_search(query_tokens):
-
-"""
-:param lst1: list of Nodes from the first part of AND
-:param lst2: list of Nodes from the second part of AND
-"""
+    """
+    :param lst1: list of Nodes from the first part of AND
+    :param lst2: list of Nodes from the second part of AND
+    """
 def and_merge(lst1, lst2):
     # first take care of edge cases
     if not lst1 and not lst2:
@@ -231,7 +230,6 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     """
     with open(queries_file, 'r') as query_file:
         query_content = query_file.read().splitlines()
-<<<<<<< HEAD
         query = query_content[0] # first line in query file is the query
 
         # evaluate query to obtain results
@@ -241,21 +239,6 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
     with open(results_file, 'w') as result_file:
         result_file.write(result_string + '\n')
-=======
-        query = query_content.pop(0) # first line in query file is the query
-        relevance_judgements = query_content # remaining entries in query_content are the given relevance judgements
-
-    # parse and evaluate each query and write results to disk one by one
-    with open(queries_file, 'r') as q, open(results_file, 'w') as r:
-        queries = q.read().splitlines()
-
-        for query in queries:
-            print("processing " + query + "...")
-            parsed_query = parse_query(query)
-            results = evaluate_query(parsed_query, dictionary, postings)
-            result_string = " ".join(str(i) for i in results)
-            r.write(result_string + '\n')
->>>>>>> 54e9b72742e6deadae90c2743f9ed3e07b59375a
 
 dictionary_file = postings_file = file_of_queries = output_file_of_results = None
 

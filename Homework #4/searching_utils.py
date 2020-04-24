@@ -16,14 +16,45 @@ def parse_query(query):
     Parses the query and returns a list of lists corresponding to the parsed query.
 
     The number of items in the outer list correspond to the number of queries separated by AND. The inner list either
-    contains one phrase surrounded by double quotation marks corresponding to a phrasal query or is a list of tokens
-    corresponding to a free text query.
+    contains a parsed phrase corresponding to a phrasal query or is a list of tokens corresponding to a free text query.
+    Multi-word free text queries in an AND query are treated as AND queries on each word.
 
     @param query the query to be parsed
+    @return the parsed query
     """
-    # check for AND in query
-    if "AND" in query:
+    # delimit query by AND
+    split_query = [subquery.strip() for subquery in query.split("AND")]
 
+    parsed_query = []
+    for subquery in split_query:
+        # check for phrasal query
+        if subquery[0] == "\"":
+            parsed_phrasal_query = parse_phrasal_query(subquery) # returns a list
+            parsed_query.append(parsed_phrasal_query)
+        else: # subquery is either single word free text query or multi-word free text query
+            if " " in subquery: # true for multi-word queries
+                parsed_multiword_free_text_query = parse_multiword_free_text_query(subquery) # returns a list
+                parsed_query.append(parsed_multiword_free_text_query)
+
+            else:
+                parsed_query.append([stemmer.stem(subquery.lower())])
+
+    return parsed_query
+
+def parse_multiword_free_text_query(query):
+    tokens = query.split(" ") # split query into individual words
+    stemmed_tokens = [stemmer.stem(token.lower()) for token in tokens]
+    return stemmed_tokens
+
+def parse_phrasal_query(query):
+    """
+    Tokenize, stem, rejoin phrasal query and strip off quotation marks
+    """
+    query = query.strip('"') # remove quotation marks
+    tokens = query.split(" ") # split query into individual words
+    stemmed_tokens = [stemmer.stem(token.lower()) for token in tokens]
+    parsed_phrasal_query = " ".join(str(i) for i in stemmed_tokens)
+    return [parsed_phrasal_query]
 
 def evaluate_query(query, dictionary, postings):
     """
@@ -126,3 +157,4 @@ def calculate_cosine_scores(query_vector, dictionary, postings):
     return scores
 
 no_of_results = 10 # return only top 10 results
+stemmer = PorterStemmer()
