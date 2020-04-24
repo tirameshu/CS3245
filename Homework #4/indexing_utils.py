@@ -94,10 +94,10 @@ def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
         for token in index:
             print("writing postings for " + token)  # for debugging
 
-            # obtain postings list of Nodes sorted by doc_id
+            print("obtaining postings list of Nodes sorted by doc_id")
             postings_list = [entry[1] for entry in sorted(index[token].items())] # entry[1] corresponds to Node
 
-            # update next and skip Nodes for each Node in postings list
+            print("update next and skip Nodes for each Node in postings list")
             update_nodes(postings_list)
 
             # extract Term information such as document frequency and pointer to postings
@@ -105,6 +105,7 @@ def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
             pointer = postings.tell()
             terms.append(Term(token, df, pointer))  # add Term to list of terms
 
+            print("dumping")
             pickle.dump(postings_list, postings)  # save postings to disk
 
     # write dictionary to disk
