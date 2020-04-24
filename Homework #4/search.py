@@ -16,27 +16,53 @@ from searching_utils import parse_query, evaluate_query
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
 
-zone_weights = []
+"""
+:param lst1: list of Nodes from the first part of AND
+:param lst2: list of Nodes from the second part of AND
+"""
+def and_merge(lst1, lst2):
+    # first take care of edge cases
+    if not lst1 and not lst2:
+        return []
 
-# TODO: skip pointer and all
-def and_search(p1, p2):
+    if lst1 and not lst2:
+        return lst1
+
+    if lst2 and not lst1:
+        return lst2
+
+    # normal use case
+
+    node1 = lst1[0]
+    node2 = lst2[0]
     result = []
-    i, j = 0, 0
-    while i < len(p1) and j < len(p2):
-        doc1 = p1[i]
-        doc2 = p2[i]
 
-        if doc1 == doc2:
-            result.append(doc1)
-        elif doc1 < doc2:
-            i += 1
+    while node1.has_skip() and node2.has_skip():
+        if node1.get_doc_id() < node2.get_doc_id():
+            if node1.has_skip():
+                skip_node = node1.get_skip()
+                if skip_node.get_doc_id() < node2.get_doc_id(): # utilise skip pointer
+                    node1 = skip_node
+                else:
+                    node1 = node1.get_next()
+            else:
+                node1 = node1.get_next()
+
+        elif node2.get_doc_id() < node1.get_doc_id():
+            if node2.has_skip():
+                skip_node = node2.get_skip()
+                if skip_node.get_doc_id() < node1.get_doc_id():  # utilise skip pointer
+                    node2 = skip_node
+                else:
+                    node2 = node2.get_next()
+            else:
+                node2 = node2.get_next()
         else:
-            j += 1
+            result.append(node1) # save node
+            node1 = node1.get_next()
+            node2 = node2.get_next()
 
     return result
-
-#def calculate_g():
-#    return (n_10r + n_01n) / (n_10r + n_10n + n_01r + n_01n)
 
 """
 :param node: contains docID, positional indices, next node, skip node
@@ -45,7 +71,7 @@ fields and corresponding boolean values
 :param zone_weights: weights given to each zone to be multiplied with boolean
 :return zone_score: sum of zone_score for each zone
 """
-def get_weighted_zone(node, zone_weights): # TODO: @atharv check node param aboe and implementation below
+def get_weighted_zone(node, zone_weights):
     """
     implementation 1: every zone contains a boolean value
 
@@ -62,9 +88,6 @@ Assumes common document for two tokens have been found, and the corresponding po
 :param positions1: a list of positions for token1 in common doc
 :param positions2: a list of positions for token2 in common doc
 """
-# TODO: @atharv to check if u want positions to also be some ADT hahaha if not we need compare primitively with array index
-#  Orrrr we could have each Node be docID + position, so new Node not just for a different doc, but a different position as well.
-
 def get_consecutives(positions1, positions2):
     result = []
     i, j = 0, 0
@@ -99,12 +122,9 @@ def phrasal_query(phrase, postings):
     """
     postings:
     {
-        term1: {
-            doc1: [position1, position2, ...]
-            doc2: [position1, position2, ...]
-        }
-        term 2: {
-        ...
+        Term1: {
+            Node1 containing [position1, position2, ...]
+            Node2 containing [position1, position2, ...]
         }
         ...
     }
@@ -112,15 +132,27 @@ def phrasal_query(phrase, postings):
     2-way merge: take first 2 terms to look through positions first, then add another
     """
 
+    simplified_posting = {}
+    # only store { token: { docID: [positions] } }
+    for term in postings:
+        token = term.get_token()
+        if token not in simplified_posting:
+            simplified_posting[token] = {}
+
+        docs = simplified_posting[token]
+
+        for node in postings[term]:
+            docID = node.get_doc_id() # should only encounter each docID once
+            docs[docID] = node.get_positions()
+
     # adding the docs and corresponding positions for all query tokens
     # needs to be refreshed for every new query
-
     phrase_postings = []
 
     for token in phrase:
-        if token in postings:
-            phrase_postings.append(postings[token]) # returns a dictionary
-        # TODO: @atharv if any of the query tokens is not in postings, should we not return anything or still return based on whatever's left?
+        if token in simplified_posting:
+            phrase_postings.append(simplified_posting[token]) # returns a dictionary of { docID : positions }
+            # words not in dictionary are ignored
 
     if phrase_postings:
         result = phrase_postings[0]
@@ -129,7 +161,7 @@ def phrasal_query(phrase, postings):
             token1_docs = result
             token2_docs = phrase_postings[i]
 
-            # find intersection of docs
+            # find intersection of docIDs
             shared_docs = set(token1_docs.keys()).intersection(set(token2_docs.keys()))
 
             temp = {} # after looking through docs containing the exact phrase

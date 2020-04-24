@@ -1,3 +1,4 @@
+import sys
 """
 A node in the postings list written on disk.
 """
@@ -34,6 +35,9 @@ class Node:
     def get_skip(self):
         if (self.has_skip):
             return self.skip_node
+
+    def get_positions(self):
+        return self.positions
 
     def has_next(self):
         return self.next_node != None and type(self.next_node) == Node

@@ -7,7 +7,9 @@ import pickle
 
 from node import Node
 from term import Term
+from nltk.corpus import stopwords
 
+stop_words = set(stopwords.words('english'))
 
 def collect_tokens(data):
     """
@@ -25,7 +27,7 @@ def collect_tokens(data):
         words = word_tokenize(sentence) # word tokenizing
         for word in words:
             # only process alphanumeric tokens
-            if (word.isalnum()) and (word != "and"):
+            if word.isalnum() and word not in stop_words:
                 word = word.lower() # case folding
                 word = stemmer.stem(word) # stemming
                 tokens.append(word)

@@ -34,6 +34,16 @@ with separate dictionaries is effectively O(1), rather than looping through all 
 ----------------
 
 === Search ===
+
+Assumption:
+1. Users will query title or body, rather than court or date.
+    1.1 However, court and date are important for relevance ranking.
+2. Titles, courts and some dates are in the content, therefore it is safe to
+    search through content first, then check if any of the docs (alr deemed relevant
+    based on cosine similarity) has query in its title.
+    2.1 Takes care of situations where say a date appears multiple times in one case but is
+        the actual publishing date of another case.
+
 1. Query Processing.
     1.1 For every search, delimit with AND op, and first retrieve for each query term separately.
         1.1.1 If there's no AND (ie result of delimitation is of length 1)
@@ -41,39 +51,38 @@ with separate dictionaries is effectively O(1), rather than looping through all 
             1.1.1.2 Else, free text search. Conduct normal tf-idf scoring,
                     to be summed with weighted zone scoring, calculated for each individual query term.
         1.1.2 Else
-            1.1.2.1 Merge the posting lists first.
+            1.1.2.1 Call the first search function on the two components.
             1.1.2.2 If the result of delimitation involves quotation marks, means the query involves a phrase.
                     Then conduct phrasal search, involving zones and fields.
             1.1.2.3 Else, free text search as above.
 
 2. Zones and Fields.
-    2.1 Weighted zone scoring is used for all searches: free-text, boolean and phrasal.
-        2.1.1 Even though each document has 5 fields, what is more significant is
-              the separation of metadata from the content body of the document,
-              to facilitate searching of title, date, court, etc., which are very likely to be queried specifically.
+    2.1 We will search through the content of the document first, then sort the resulting documents
+        by their metadata.
 
-    2.2 Therefore there are 2 zones for every document: metadata (zone1) and content (zone2).
-
-    2.3 The weight of zone1 is to be set higher than that of zone2, to facilitate specific searches
-        in fields. // TODO: decide on whether it shld rly be higher, and how much higher
-
-    2.4 If multiple query terms exist, they must be connected by AND, therefore weighted zone can be calculated
-        for each term and summed using the algorithm as described in Fig 6.4 of Textbook Chapter 6.
-
-    2.5 This implementation covers both the searching of query terms in fields and content body.
+    2.2 To facilitate searches specific to any of the metadata, especially `title`, we will rank the documents
+        by existence in metadata first (specifically, title), followed by date (for every decade later than the
+        current year, the relevance drops proportionally), and then court (higher court -> higher weight).
+        2.2.1 As the weights are varied within each zone, this is not really weighted-zone score.
+        TODO: proportional for year?
 
 3. Phrasal Search.
-    3.1 Query phrase is tokenised into words, and the posting of each word is found separately.
+    3.1 Query phrase is first tokenised into words, and the posting of each word is found separately.
 
-    3.2 The intersection of the postings are then found based on the docIDs, similar to boolean search.
+    3.2 Then find intersection of the postings based on the docIDs, same as boolean search.
         3.2.1 However, the list of positions for each query term is kept separate.
         3.2.2. The lists of positions should be ordered according to the order of the words in the phrase.
 
     3.3 Loop through the nodes in the resultant list, and check whether the positions of the words in the phrase
         are in the desired order.
+        3.3.1 Also note the number of times the phrase appeared in the document and use the same df formula for it,
+                while also normalising by document length.
 
     3.4 Potential edge cases:
         3.4.1. Repeated words, eg "one by one", "so so"
+
+    3.5 Unfortunately we cannot guarantee that the documents returned have exact matches with the phrasal query,
+        as the terms are stemmed.
 
 4. Query Refinement
 
