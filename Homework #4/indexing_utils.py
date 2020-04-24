@@ -85,7 +85,7 @@ def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
     """
     print("writing to disk") # for debugging
 
-    terms = []  # list of Terms to be written to dictionary in disk
+    terms = {} # terms to be written to dictionary in disk. key - term, value - (df, pointer)
 
     # write postings to disk
     with open(out_postings, 'wb') as postings:
@@ -100,7 +100,7 @@ def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
             # extract Term information such as document frequency and pointer to postings
             df = len(index[token])
             pointer = postings.tell()
-            terms.append(Term(token, df, pointer))  # add Term to list of terms
+            terms[token] = (df, pointer)
 
             print("dumping")
             pickle.dump(postings_list, postings)  # save postings to disk

@@ -12,7 +12,7 @@ from searching_utils import parse_query, evaluate_query
 
 
 def usage():
-    print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
+    print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
 
 """
 :param query: list of stemmed query tokens, phrasal searches given as a phrase without quotation but with space
@@ -231,7 +231,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     with open(results_file, 'w') as result_file:
         result_file.write(result_string + '\n')
 
-dictionary_file = postings_file = file_of_queries = output_file_of_results = None
+dictionary_file = postings_file = query_file = output_file_of_results = None
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], 'd:p:q:o:')
@@ -245,17 +245,17 @@ for o, a in opts:
     elif o == '-p':
         postings_file = a
     elif o == '-q':
-        file_of_queries = a
+        query_file = a
     elif o == '-o':
-        file_of_output = a
+        output_file_of_results = a
     else:
         assert False, "unhandled option"
 
-if dictionary_file == None or postings_file == None or file_of_queries == None or output_file_of_results == None :
+if dictionary_file == None or postings_file == None or query_file == None or output_file_of_results == None :
     usage()
     sys.exit(2)
 
 start_time = time.time()  # clock the run
-run_search(dictionary_file, postings_file, file_of_queries, output_file_of_results)
+run_search(dictionary_file, postings_file, query_file, output_file_of_results)
 end_time = time.time()
 print('search completed in ' + str(round(end_time - start_time, 2)) + 's')

@@ -87,15 +87,8 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
         # flatten the list of lists into a list of independent queries to be supplied to the boolean AND search function
         flattened_query = [subquery for inner_list in query for subquery in inner_list]
 
-        # obtain dictionary of postings where token in query is key and postings list of token is value
-        postings = get_postings(flattened_query, dictionary, postings_file)
-
-        # obtain flattened query sorted according to ascending order of length of the posting list of tokens in query
-        # the sorting is important to ensure that the boolean search function performs intersection according to the
-        # heuristic - 'search by terms with increasing document frequency'
-        sorted_query = sort_query_tokens_by_df(postings)
-
-        results = boolean_search(sorted_query, postings)
+        # call boolean search, which will obtain the postings as required
+        results = boolean_search(flattened_query, dictionary, postings_file)
         # TODO rank results from boolean search using VSM search on query
         return results
 
@@ -104,24 +97,47 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
         if " " in query[0]:
             # obtain individual tokens in phrasal query
             tokenised_phrasal_query = query[0].split(" ")
-            # obtain dictionary of postings where token in query is key and postings list of token is value
-            postings = get_postings(tokenised_phrasal_query, dictionary, postings_file)
 
-            results = phrasal_search(tokenised_phrasal_query, postings)
+            # call phrasal search, which will obtain the postings as required
+            results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file)
             return results
 
         else: # free text query, run VSM search
             tokenised_free_text_query = query[0]
-            postings = get_postings(tokenised_free_text_query, dictionary, postings_file)
-            results = VSM_search(tokenised_free_text_query, dictionary, postings, doc_lengths)
+
+            # call VSM search, which will obtain the postings as required
+            results = VSM_search(tokenised_free_text_query, dictionary, postings_file, doc_lengths)
             return results
 
-def VSM_search(query, dictionary, postings, doc_lengths):
+def get_postings(query, dictionary, postings_file):
+    """
+    Returns postings of each token in the given query
+
+    @param query a list containing query tokens
+    @param dictionary the dictionary of Terms saved to disk
+    @param postings_file the file containing postings written in disk
+    @return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
+    value of an inner dictionary with doc_id as key and list of positional indices as value.
+    """
+    postings = {}
+
+    with open(postings_file, 'rb') as post:
+        for token in query:
+            if token in dictionary:
+                pointer = dictionary[token][1]
+                post.seek(pointer)
+                postings_list = pickle.load(post)  # obtain postings list corresponding to term
+                postings[token] = postings_list
+                post.seek(0)  # rewind
+
+    return postings
+
+def VSM_search(query, dictionary, postings_file, doc_lengths):
     # build query_vector with key: token, value: normalised w_tq of token
     query_vector = build_query_vector(query[0], dictionary)
 
     # calculate scores with key: docID, value: cosine score of document corresponding to docID
-    scores = calculate_cosine_scores(query_vector, dictionary, doc_lengths, postings)
+    scores = calculate_cosine_scores(query[0], query_vector, dictionary, postings_file, doc_lengths)
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)  # sort scores by descending order
 
     # TODO determine threshold cosine score for relevance, currently set to 0
@@ -174,17 +190,14 @@ def build_query_vector(query, dictionary):
 
     return query_vector
 
-def calculate_cosine_scores(query_vector, dictionary, doc_lengths, postings):
+def calculate_cosine_scores(query, query_vector, dictionary, postings_file, doc_lengths):
     """
     Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
     @return dictionary containing document IDs as key and cosine scores as values
     """
     scores = {} # key: docID, value: cosine score
 
-    for token in query_vector:
-        if dictionary.has_token(token):
-            pointer = dictionary.get_pointer(token)
-            postings_list = postings.load(pointer)
+    postings = get_postings(query, dictionary, postings_file)
 
             for posting in postings_list:
                 docID = posting[0]
