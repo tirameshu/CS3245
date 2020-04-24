@@ -25,7 +25,7 @@ def collect_tokens(data):
         words = word_tokenize(sentence) # word tokenizing
         for word in words:
             # only process alphanumeric tokens
-            if word.isalphanum():
+            if (word.isalnum()) and (word != "and"):
                 word = word.lower() # case folding
                 word = stemmer.stem(word) # stemming
                 tokens.append(word)

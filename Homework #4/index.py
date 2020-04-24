@@ -7,7 +7,7 @@ import time
 from indexing_utils import collect_tokens, process_tokens, calculate_doc_length, write_to_disk
 
 csv.field_size_limit(1048576) # increase field size limit, number is eight times default limit, found by trial & error
-sys.setrecursionlimit(100000) # increase to enable write to disk using pickle
+sys.setrecursionlimit(1000000) # increase to enable write to disk using pickle
 
 def usage():
     print("usage: " + sys.argv[0] + " -i dataset-file -d dictionary-file -p postings-file")
@@ -38,9 +38,13 @@ def build_index(in_file, out_dict, out_postings):
     with open(in_file, 'r', errors='ignore') as csvfile:
         file_reader = csv.DictReader(csvfile)
         # the values in the first row of file f are used as fieldnames
+        count = 0
         for row in file_reader:
+            count += 1
+            if (count == 17155):
+                break
             doc_id = row["document_id"] # extract document ID
-            print("indexing doc " + str(doc_id)) # for debugging
+            print("indexing doc " + str(doc_id) + " " + str(count)) # for debugging
 
             # collect tokens in current document
             content = row["content"] # extract case content

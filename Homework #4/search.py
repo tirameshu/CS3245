@@ -188,9 +188,10 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     """
     Same as homework 3 - to be improved upon (atharv)
     """
-    # TODO: @atharv to update
-    dictionary = Dictionary(dict_file)
-    postings = Postings(postings_file)
+    with open(queries_file, 'r') as query_file:
+        query_content = query_file.read().splitlines()
+        query = query_content.pop(0) # first line in query file is the query
+        relevance_judgements = query_content # remaining entries in query_content are the given relevance judgements
 
     # parse and evaluate each query and write results to disk one by one
     with open(queries_file, 'r') as q, open(results_file, 'w') as r:
@@ -226,11 +227,11 @@ for o, a in opts:
     else:
         assert False, "unhandled option"
 
-if dictionary_file == None or postings_file == None or file_of_queries == None or file_of_output == None :
+if dictionary_file == None or postings_file == None or file_of_queries == None or output_file_of_results == None :
     usage()
     sys.exit(2)
 
 start_time = time.time()  # clock the run
-run_search(dictionary_file, postings_file, file_of_queries, file_of_output)
+run_search(dictionary_file, postings_file, file_of_queries, output_file_of_results)
 end_time = time.time()
 print('search completed in ' + str(round(end_time - start_time, 2)) + 's')
