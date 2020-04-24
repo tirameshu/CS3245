@@ -8,8 +8,6 @@ import math
 import pickle
 import heapq
 
-from dictionary import Dictionary
-from postings import Postings
 from searching_utils import parse_query, evaluate_query
 
 
@@ -218,26 +216,24 @@ def get_zone_score(nodes):
 
 def run_search(dict_file, postings_file, queries_file, results_file):
     """
-    Same as homework 3 - to be improved upon (atharv)
+    Runs search by extracting query from query file, evaluating it, and writing the results to result file
+
+    @param dict_file the file containing dictionary written in disk
+    @param postings_file the file containing postings written in disk
+    @param queries_file the file containing the query
+    @param results_file the file to write the results to
     """
     with open(queries_file, 'r') as query_file:
         query_content = query_file.read().splitlines()
-        query = query_content.pop(0) # first line in query file is the query
-        relevance_judgements = query_content # remaining entries in query_content are the given relevance judgements
+        query = query_content[0] # first line in query file is the query
 
-    # parse and evaluate each query and write results to disk one by one
-    with open(queries_file, 'r') as q, open(results_file, 'w') as r:
-        queries = q.read().splitlines()
+        # evaluate query to obtain results
+        parsed_query = parse_query(query)
+        results = evaluate_query(parsed_query, dict_file, postings_file)
+        result_string = " ".join(str(i) for i in results)
 
-        # TODO: @atharv do we want to only retrieve the posting when evaluating each query
-        #  (thereafter storing the posting obtained in a dictionary here) or
-        #  we retrieve for all query tokens in a single query here from the start
-        for query in queries:
-            print("processing " + query + "...")
-            parsed_query = parse_query(query)
-            results = evaluate_query(parsed_query, dictionary, postings)
-            result_string = " ".join(str(i) for i in results)
-            r.write(result_string + '\n')
+    with open(results_file, 'w') as result_file:
+        result_file.write(result_string + '\n')
 
 dictionary_file = postings_file = file_of_queries = output_file_of_results = None
 

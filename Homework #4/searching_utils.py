@@ -13,9 +13,17 @@ from postings import Postings
 
 def parse_query(query):
     """
-    Returns a list of word tokens from the input query after stemming and case folding.
+    Parses the query and returns a list of lists corresponding to the parsed query.
+
+    The number of items in the outer list correspond to the number of queries separated by AND. The inner list either
+    contains one phrase surrounded by double quotation marks corresponding to a phrasal query or is a list of tokens
+    corresponding to a free text query.
+
+    @param query the query to be parsed
     """
-    return [PorterStemmer().stem(token.lower()) for token in word_tokenize(query)]
+    # check for AND in query
+    if "AND" in query:
+
 
 def evaluate_query(query, dictionary, postings):
     """
