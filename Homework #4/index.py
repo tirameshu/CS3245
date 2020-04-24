@@ -7,6 +7,7 @@ import time
 from indexing_utils import collect_tokens, process_tokens, calculate_doc_length, write_to_disk
 
 csv.field_size_limit(1048576) # increase field size limit, number is eight times default limit, found by trial & error
+sys.setrecursionlimit(100000) # increase to enable write to disk using pickle
 
 def usage():
     print("usage: " + sys.argv[0] + " -i dataset-file -d dictionary-file -p postings-file")

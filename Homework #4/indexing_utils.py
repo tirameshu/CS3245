@@ -11,9 +11,10 @@ from term import Term
 
 def collect_tokens(data):
     """
-    Collects all tokens from a given data string after performing tokenizing, case folding, and stemming.
+    Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering,
+    and stemming.
 
-    :param data data string to be tokenized
+    @param data data string to be tokenized
     """
     tokens = []
     stemmer = PorterStemmer() # use Porter stemmer for stemming
