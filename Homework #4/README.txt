@@ -88,7 +88,15 @@ Assumption:
     3.5 Unfortunately we cannot guarantee that the documents returned have exact matches with the phrasal query,
         as the terms are stemmed.
 
-4. Query Refinement
+4. Boolean Query
+    4.1 Every component of a boolean query is interpreted as joined by AND, eg cat mouse AND dog == cat AND mouse AND dog,
+        thus the posting for each term in the query is found and intersected.
+    4.2 For boolean queries with phrases, phrasal query is conducted on the phrase, and resulting posting list is
+        similarly intersected with the other parts of the boolean query.
+    4.3 Ranking of the intersected documents is determined by cosine similarity between query and document, where
+        the query now is taken to be free text. This is to differentiate documents based on frequencies
+        of the queried terms, assuming that a document which sees a higher frequency of even just one of the terms
+        is more likely to be relevant.
 
 == Work Allocation ==
 Wang Xinman: drafted the structure of implementation, implementation of zones and fields, and phrasal search
