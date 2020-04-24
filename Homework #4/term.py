@@ -9,3 +9,9 @@ class Term:
 
     def get_token(self):
         return self.token
+
+    def get_df(self):
+        return self.df
+
+    def get_pointr(self):
+        return self.pointer
