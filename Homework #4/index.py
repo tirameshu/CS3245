@@ -15,9 +15,9 @@ def build_index(in_file, out_dict, out_postings):
     """
     Builds index by extracting key information from given dataset file.
 
-    @param in_file input dataset file the index is built from
-    @param out_dict target output file to write dictionary to
-    @param out_postings target output file to write postings to
+    :param in_file input dataset file the index is built from
+    :param out_dict target output file to write dictionary to
+    :param out_postings target output file to write postings to
     """
     print('indexing...')
 
@@ -37,6 +37,7 @@ def build_index(in_file, out_dict, out_postings):
     # read and process each row in csv file
     with open(in_file, 'r', errors='ignore') as csvfile:
         file_reader = csv.DictReader(csvfile)
+        # the values in the first row of file f are used as fieldnames
         for row in file_reader:
             doc_id = row["document_id"] # extract document ID
             print("indexing doc " + str(doc_id)) # for debugging
