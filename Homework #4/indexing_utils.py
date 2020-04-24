@@ -73,12 +73,12 @@ def write_to_disk(index, doc_lengths, titles, courts, out_dict, out_postings):
     """
     Writes postings and dictionary to disk
 
-    @param index the index from which postings and dictionary are to be extracted
-    @param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
-    @param titles dictionary of titles to be written to dictionary file in disk
-    @param courts dictionary of courts to be written to dictionary file in disk
-    @param out_dict target output file to write dictionary to
-    @param out_postings target output file to write postings to
+    :param index the index from which postings and dictionary are to be extracted
+    :param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
+    :param titles dictionary of titles to be written to dictionary file in disk
+    :param courts dictionary of courts to be written to dictionary file in disk
+    :param out_dict target output file to write dictionary to
+    :param out_postings target output file to write postings to
     """
     terms = []  # list of Terms to be written to dictionary in disk
 
@@ -110,7 +110,7 @@ def update_nodes(postings):
     """
     Updates the next and skip nodes for all nodes in the given postings list
 
-    @param postings list of nodes to be updated
+    :param postings list of nodes to be updated
     """
     # follow heuristic where sqrt(l) skip pointers are evenly placed on the a postings list of length l
     len_postings = len(postings)
