@@ -88,9 +88,6 @@ Assumes common document for two tokens have been found, and the corresponding po
 :param positions1: a list of positions for token1 in common doc
 :param positions2: a list of positions for token2 in common doc
 """
-# TODO: @atharv to check if u want positions to also be some ADT hahaha if not we need compare primitively with array index
-#  Orrrr we could have each Node be docID + position, so new Node not just for a different doc, but a different position as well.
-
 def get_consecutives(positions1, positions2):
     result = []
     i, j = 0, 0
@@ -125,12 +122,9 @@ def phrasal_query(phrase, postings):
     """
     postings:
     {
-        term1: {
-            doc1: [position1, position2, ...]
-            doc2: [position1, position2, ...]
-        }
-        term 2: {
-        ...
+        Term1: {
+            Node1 containing [position1, position2, ...]
+            Node2 containing [position1, position2, ...]
         }
         ...
     }
@@ -138,15 +132,27 @@ def phrasal_query(phrase, postings):
     2-way merge: take first 2 terms to look through positions first, then add another
     """
 
+    simplified_posting = {}
+    # only store { token: { docID: [positions] } }
+    for term in postings:
+        token = term.get_token()
+        if token not in simplified_posting:
+            simplified_posting[token] = {}
+
+        docs = simplified_posting[token]
+
+        for node in postings[term]:
+            docID = node.get_doc_id() # should only encounter each docID once
+            docs[docID] = node.get_positions()
+
     # adding the docs and corresponding positions for all query tokens
     # needs to be refreshed for every new query
-
     phrase_postings = []
 
     for token in phrase:
-        if token in postings:
-            phrase_postings.append(postings[token]) # returns a dictionary
-        # TODO: @atharv if any of the query tokens is not in postings, should we not return anything or still return based on whatever's left?
+        if token in simplified_posting:
+            phrase_postings.append(simplified_posting[token]) # returns a dictionary of { docID : positions }
+            # words not in dictionary are ignored
 
     if phrase_postings:
         result = phrase_postings[0]
@@ -155,7 +161,7 @@ def phrasal_query(phrase, postings):
             token1_docs = result
             token2_docs = phrase_postings[i]
 
-            # find intersection of docs
+            # find intersection of docIDs
             shared_docs = set(token1_docs.keys()).intersection(set(token2_docs.keys()))
 
             temp = {} # after looking through docs containing the exact phrase
