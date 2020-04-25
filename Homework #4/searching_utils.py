@@ -8,6 +8,170 @@ import math
 import pickle
 from collections import defaultdict
 
+"""
+Rank phrasal search by tf (log) of the entire phrase.
+
+:param doc_to_tf: a dictionary of {docID: tf_of_phrase}
+:param doc_lengths: a dictionary of { docID: doc_length }, to normalise
+"""
+def rank_phrasal_by_tf(doc_to_tf, doc_lengths):
+    pass
+
+"""
+Ranking by tf (log) of the query taken as free text.
+
+:param query: list of stemmed query tokens
+:param relevant_docIDs: a list of relevant docIDs for the query
+:param postings: postings 
+:param doc_lengths: a dictionary of { docID: doc_length }, to normalise
+"""
+def rank_boolean_by_tf(query, relevant_docIDs, postings, doc_lengths):
+
+    # get postings for each token in query if that token exists in dictionary
+
+    # build query_vector with key: token, value: normalised w_tq of token
+    N = len(doc_lengths) # N is the total number of documents in the corpus
+    query_vector = build_query_vector(query, dictionary, N)
+
+    # calculate scores with key: docID, value: cosine score of document corresponding to docID
+    scores = calculate_cosine_scores(query_vector, postings, doc_lengths)
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)  # sort scores by descending order
+
+    # TODO determine threshold cosine score for relevance, currently set to 0
+    threshold_score = 0
+    results = [entry[0] for entry in sorted_scores if entry[1] > threshold_score]
+    return results
+
+"""
+Finds *sorted* intersection of two iterables of docIDs.
+
+:param lst1: iterable of token1
+:param lst2: iterable of token2
+
+:return: list of common docIDs
+"""
+
+def and_merge(lst1, lst2):
+    return sorted(list(set(lst1).intersection(set(lst2))))
+
+"""
+Assumes common document for two tokens have been found, and the corresponding postings lists are being used.
+
+:param positions1: a list of positions for token1 in common doc
+:param positions2: a list of positions for token2 in common doc
+"""
+def get_consecutives(positions1, positions2):
+    result = []
+    i, j = 0, 0
+    while i < len(positions1) and j < len(positions2):
+        p1 = positions1[i]
+        p2 = positions2[j]
+
+        # p2 has to be after p1
+        if p2 <= p1:
+            j += 1
+            continue
+
+        elif p2 - p1 == 1:
+            result.append((p1, p2))
+
+            i += 1
+            j += 1
+
+        else:
+            i += 1
+
+    return result
+
+"""
+Takes a phrase and does two-way checking of positions at a time.
+Handles the case where there is only 1 word in phrase.
+ 
+:param tokenised_phrasal_query: list of stemmed query tokens
+:param dictionary: { token: (df, pointer) }
+:param postings_file: postings.txt
+:param is_boolean: whether the phrase was passed from a boolean search
+
+:return result: list of docIDs
+"""
+def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolean):
+    """
+    2-way merge: take first 2 terms to look through positions first, then add another
+    """
+
+    # postings may be empty, eg none of the query tokens are in dictionary
+    postings = get_postings(tokenised_phrasal_query, dictionary, postings_file)
+
+    result = {}
+
+    # compare 2-way at a time, only need to compare w the token before
+    for token in tokenised_phrasal_query:
+        dict1 = result
+        dict2 = postings[token] # { docID: [positions] }
+
+        # find intersection of docIDs as a list
+        shared_docs = and_merge(dict1.keys(), dict2.keys())
+
+        temp = {} # after looking through docs containing the exact phrase
+
+        for doc in shared_docs:
+            p1 = dict1[doc] # positions of token1 in doc
+            p2 = dict2[doc] # positions of token2 in doc
+
+            temp[doc] = get_consecutives(p1, p2) # can be empty list, but maintain same format for future merging
+
+        result = temp
+
+    return result # Dictionary of docs with a list of the positions of the last query token, after making sure the
+                  # positions of the other words are correct.
+                  # This will help give frequency of phrase in doc.
+
+"""
+Runs boolean search by calling AND merge function on each subquery.
+
+:param query: list of stemmed subquery tokens, phrasal searches given as a phrase without quotation but with space
+:param dictionary: { token: (df, pointer) }
+:param postings_file: postings.txt
+:return result: list of docIDs
+"""
+def boolean_search(query, dictionary, postings_file):
+    results = {} # container for results of list intersection
+    for subquery in query:
+        # check if subquery is a phrase
+        if " " in subquery:
+            # run phrasal search after splitting phrasal subquery, returns a list of relevant doc_ids
+            tokenised_phrasal_query = subquery.split(" ")
+            # this phrasal search is embedded in a boolean search, thus is_boolean = True
+            temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, True)
+
+        else:
+            # a single word
+            postings = get_postings(subquery, dictionary, postings_file)
+            temp_results = postings[subquery]
+
+        # result is reused in next iteration, merged with next subquery
+        results = and_merge(results, temp_results)
+
+    return results
+
+# """
+# :param node: contains docID, positional indices, next node, skip node
+# fields and corresponding boolean values
+#
+# :param zone_weights: weights given to each zone to be multiplied with boolean
+# :return zone_score: sum of zone_score for each zone
+# """
+# def get_weighted_zone(node, zone_weights):
+#     """
+#     implementation 1: every zone contains a boolean value
+#
+#     implementation 2: node has attributes "in_metadata" and "in_body",
+#     with boolean values for both, so calculation is only done based on these two.
+#     """
+#     # assuming implementation 2
+#
+#     return node.in_metadata * zone_weights[0] + node.in_body * zone_weights[1]
+
 def parse_query(query):
     """
     Parses the query and returns a list of lists corresponding to the parsed query.
@@ -24,8 +188,11 @@ def parse_query(query):
 
     parsed_query = []
 
+    # for-loop appends a parsed subquery list for every subquery encountered,
+    # and since subqueries are produced by delimiting with "AND",
+    # only boolean queries will have multiple subqueries.
     for subquery in split_query:
-        # check for empty query
+        # ignores for empty query
         if not subquery:
             continue
 
@@ -94,13 +261,18 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
         return results
 
     else: # no AND, either phrasal query or free text query
+
+        # this should be true as non-boolean searches should only have 1 subquery.
+        assert(len(query) == 1)
+
         # check for phrasal query
         if " " in query[0]:
             # obtain individual tokens in phrasal query
             tokenised_phrasal_query = query[0].split(" ")
 
             # call phrasal search, which will obtain the postings as required
-            results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file)
+            # this phrasal search is not embedded in a boolean search, thus is_boolean = False
+            results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, False)
             return results
 
         else: # free text query, run VSM search
@@ -114,7 +286,7 @@ def get_postings(query, dictionary, postings_file):
     """
     Returns postings of each token in the given query
 
-    :param query a list containing query tokens
+    :param query: a list containing query tokens
     :param dictionary the dictionary of terms saved to disk
     :param postings_file the file containing postings written in disk
     :return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
@@ -161,6 +333,12 @@ def boolean_search(query, dictionary, postings_file):
     # TODO rank results from boolean retrieval based on a VSM search
     return results
 
+"""
+:param query: list of stemmed query tokens
+:param dictionary: { token: (df, pointer) }
+:param postings_file: postings.txt
+:param doc_lengths: a dictionary of { docID: doc_length }
+"""
 def VSM_search(query, dictionary, postings_file, doc_lengths):
     # get postings for each token in query if that token exists in dictionary
     postings = get_postings(query, dictionary, postings_file)
