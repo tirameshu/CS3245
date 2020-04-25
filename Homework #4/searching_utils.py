@@ -16,7 +16,7 @@ def rank_phrasal_by_tf(intermediate_result, doc_lengths):
     for docID in intermediate_result:
         doc_to_tf[docID] = len(intermediate_result[docID]) / doc_lengths[docID] # tf / doc_length, normalisation
 
-    ranked = sorted(doc_to_tf.items(), key=lambda x: x[1], reverse=True) # sorted by normalised tf
+    ranked = sorted(doc_to_tf.items(), key=lambda x: x[1], reverse=True) # sorted in desc order by normalised tf
     return [x[0] for x in ranked] # return only docID
 
 
@@ -307,7 +307,7 @@ def calculate_cosine_scores(query_vector, postings, doc_lengths):
 # METHODS FOR BOOLEAN 'AND' SEARCH FOR BOOLEAN QUERIES #
 
 """
-Finds *sorted* intersection of two iterables of docIDs.
+Finds intersection of two iterables of docIDs, sorted in asc order
 
 :param lst1: iterable of token1
 :param lst2: iterable of token2
