@@ -16,15 +16,15 @@ def get_normalised_tf_idf(tokens, dictionary, postings, doc_lengths):
 
             idf = math.log(1/dictionary[token][0], 10) # lg(1/df)
             # update scores
-            if docID in scores:
-                scores[docID] += ltf * idf
+            if token in scores:
+                scores[token] += ltf * idf
             else:
-                scores[docID] = ltf * idf
+                scores[token] = ltf * idf
 
     # normalise all scores by dividing by document length
-    for docID, score in scores.items():
+    for token, score in scores.items():
         doc_length = doc_lengths[docID]
-        scores[docID] = score / doc_length
+        scores[token] = score / doc_length
 
     return scores
 
