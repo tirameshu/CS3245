@@ -15,23 +15,42 @@ def rank_phrasal_by_tf(doc_to_tf, doc_lengths):
     pass
 
 """
-Ranking by tf (log) of the query taken as free text.
+Ranking by tf of the query taken as free text.
 
-:param query: list of stemmed query tokens
+:param query_tokens: list of stemmed query tokens
 :param relevant_docIDs: a list of relevant docIDs for the query
-:param postings: postings 
+:param dictionary: { token: (df, pointer) }
+:param postings_file: the file containing postings written in disk
 :param doc_lengths: a dictionary of { docID: doc_length }, to normalise
 """
-def rank_boolean_by_tf(query, relevant_docIDs, postings, doc_lengths):
+def rank_boolean_by_tf(query_tokens, relevant_docIDs, dictionary, postings_file, doc_lengths):
+    postings = {} # { token: { docID: tf } } --> { token: sorted(docID, tf) }
+    scores = {} # { docID: total_tf_for_all_query_tokens }
 
-    # get postings for each token in query if that token exists in dictionary
+    # get postings for all query tokens first
+    for token in query_tokens:
+        temp = get_postings(query_tokens, dictionary, postings_file)
+        for docID in temp:
+            if docID in relevant_docIDs:
+                tf = len(temp[docID])
 
-    # build query_vector with key: token, value: normalised w_tq of token
-    N = len(doc_lengths) # N is the total number of documents in the corpus
-    query_vector = build_query_vector(query, dictionary, N)
+                if token not in postings:
+                    postings[token] = { docID: tf} # tf(token) = len(positions)
+                else:
+                    postings[token][docID] = tf # each token only encounters each docID once
 
-    # calculate scores with key: docID, value: cosine score of document corresponding to docID
-    scores = calculate_cosine_scores(query_vector, postings, doc_lengths)
+                if docID not in scores:
+                    scores[docID] = tf
+                else:
+                    scores[docID] += tf
+
+    # normalise by doc_lengths
+    for docID in scores:
+        tf = scores[docID]
+        assert(tf > 0)
+
+        scores[docID] = tf / doc_lengths[docID]
+
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)  # sort scores by descending order
 
     # TODO determine threshold cosine score for relevance, currently set to 0
@@ -132,6 +151,7 @@ treated as one-word free text queries and searched using VSM.
 :param dictionary the dictionary of Terms saved to disk
 :param doc_lengths the dictionary of document lengths with doc_id as key and document length as value
 :param postings_file the file containing postings written in disk
+
 :return a list of relevant documents depending on the query
 """
 def evaluate_query(query, dictionary, doc_lengths, postings_file):

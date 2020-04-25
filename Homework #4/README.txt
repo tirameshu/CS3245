@@ -17,19 +17,16 @@ with separate dictionaries is effectively O(1), rather than looping through all 
     3.1 `collect_tokens` is first called to tokenise and stem the terms in the document.
     3.2 `process_tokens` is then called to capture the term_frequency (tf) of each term in the current document,
         and tf is stored in a separate dictionary `term_frequencies`, in the format of
-        { (str) token: (int) docID: (Node) node }, where the node will store a list of positions of the token in the document.
+        { (str) token: (int) docID: [positions] }
     3.3 Then we store the information of zones `title` and `court` in separate dictionaries.
 
 4. We then write the index dictionary to disc.
-    4.1 We start by extracting all the nodes (containing docID and positions of the token in the doc),
-        then updating their skip pointers and adjacent node.
-    4.2 We then create a Term for each token, and assign it the corresponding document frequency (df) and
-        pointer to its posting.
-    4.3 All the indexing information is thus stored as:
-        { Term1: { docID1: [positions1] }
-          Term2: { docID2: [positions2] }
-          ...
-        } with `Term`s in dictionary.txt and { docID: [positions] } is in postings.txt
+    4.1 We start by extracting all docIDs and positions of the token in that document, and storing that in the
+        postings.txt.
+    4.2 We then find the corresponding document frequency (df) of each token, and the pointer to its posting.
+        In summary, the storing format is as follows:
+        dictionary.txt: { token: (df, pointer) }
+        postings.txt: { docID: [positions] }
 
 5. We initially implemented a Node class to facilitate skip pointers, but it takes up too much space,
     to the point where indexing resulted in Segmentation Fault. Therefore, we removed it and instead simply stored
@@ -103,6 +100,13 @@ Assumption:
         the query now is taken to be free text. This is to differentiate documents based on frequencies
         of the queried terms, assuming that a document which sees a higher frequency of even just one of the terms
         is more likely to be relevant.
+
+5. Ranking
+    5.1 For boolean queries, we are ranking the results by scoring documents based on the tf of the tokens in the query
+        in the documents, then normalising by document length.
+        5.1.1 We are not using log as it is an increasing function anyway, so a document with a higher absolute tf
+              for a token will also have a higher log value.
+
 
 == Work Allocation ==
 Wang Xinman: drafted the structure of implementation, implementation of zones and fields, and phrasal search
