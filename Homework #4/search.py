@@ -1,51 +1,23 @@
-import re
-import sys
 import getopt
-from nltk.tokenize import word_tokenize
-from nltk.stem import PorterStemmer
-import time
-import math
 import pickle
-import heapq
+import sys
+import time
 
 from searching_utils import parse_query, evaluate_query
-
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
 
 """
-For query containing AND: we will first merge the posting lists of
-all query tokens, then conduct zone-scoring.
+Runs search by extracting query from query file, evaluating it, and writing the results to result file
 
-As such, regardless of boolean search or free text search or phrasal search,
-zone-scoring only takes in 1 list of nodes, which is already the list of docIDs
-to return to user.
-
-This step is just to rank the docIDs. 
-
-:param nodes: a list of Nodes already retrieved based on query
-
-:return scores: a dictionary of { docID: zone_score }
+:param dict_file the file containing dictionary written in disk
+:param postings_file the file containing postings written in disk
+:param queries_file the file containing the query
+:param results_file the file to write the results to
 """
-# def get_zone_score(nodes):
-#     scores = {}
-#     for i in range (len(nodes)):
-#         node = nodes[i]
-#         scores[node.docID] = get_weighted_zone(node, zone_weights)
-#
-#     # need sort by score
-#     return scores
-
 def run_search(dict_file, postings_file, queries_file, results_file):
-    """
-    Runs search by extracting query from query file, evaluating it, and writing the results to result file
-
-    @param dict_file the file containing dictionary written in disk
-    @param postings_file the file containing postings written in disk
-    @param queries_file the file containing the query
-    @param results_file the file to write the results to
-    """
+    print("searching...") # for debugging
     # load contents from dictionary saved to disk
     with open(dict_file, 'rb') as dict:
         # retrieve document lengths and vocabulary
@@ -53,9 +25,16 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         dictionary = pickle.load(dict) # contains a list of Term objects
         metadata = pickle.load(dict)
 
-    with open(queries_file, 'r') as query_file:
+    with open(queries_file, 'r') as query_file, open(results_file, 'w') as result_file:
         query_content = query_file.read().splitlines()
+
+        # check for empty query
+        if not query_content:
+            result_file.write('\n')
+            return
+
         query = query_content[0] # first line in query file is the query
+        print("searching " + query) # for debugging
 
         # evaluate query to obtain results
         parsed_query = parse_query(query)
@@ -66,10 +45,13 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         #
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
 
-        result_string = " ".join(str(i) for i in results)
+        print("retrieving " + str(len(results)) + " relevant results") # for debugging
+
         # TODO order relevant documents by processing metadata
 
-    with open(results_file, 'w') as result_file:
+        # write results to disk
+        result_string = " ".join(str(i) for i in results)
+        print("writing results to disk...") # for debugging
         result_file.write(result_string + '\n')
 
 dictionary_file = postings_file = query_file = output_file_of_results = None

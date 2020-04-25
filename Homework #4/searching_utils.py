@@ -1,12 +1,9 @@
-import re
-import sys
-import getopt
-from nltk.tokenize import word_tokenize
+from collections import defaultdict
 from nltk.stem import PorterStemmer
-import time
 import math
 import pickle
-from collections import defaultdict
+
+stemmer = PorterStemmer()
 
 """
 Rank phrasal search by tf (log) of the entire phrase.
@@ -42,121 +39,6 @@ def rank_boolean_by_tf(query, relevant_docIDs, postings, doc_lengths):
     results = [entry[0] for entry in sorted_scores if entry[1] > threshold_score]
     return results
 
-"""
-Finds *sorted* intersection of two iterables of docIDs.
-
-:param lst1: iterable of token1
-:param lst2: iterable of token2
-
-:return: list of common docIDs
-"""
-
-def and_merge(lst1, lst2):
-    return sorted(list(set(lst1).intersection(set(lst2))))
-
-"""
-Assumes common document for two tokens have been found, and the corresponding postings lists are being used.
-
-:param positions1: a list of positions for token1 in common doc
-:param positions2: a list of positions for token2 in common doc
-"""
-def get_consecutives(positions1, positions2):
-    result = []
-    i, j = 0, 0
-    while i < len(positions1) and j < len(positions2):
-        p1 = positions1[i]
-        p2 = positions2[j]
-
-        # p2 has to be after p1
-        if p2 <= p1:
-            j += 1
-            continue
-
-        elif p2 - p1 == 1:
-            # only store the position of the last word of the phrase
-            # to facilitate recursive get_consecutive.
-            # the length of the final list will be the tf of the phrase.
-            result.append(p2)
-
-            i += 1
-            j += 1
-
-        else:
-            i += 1
-
-    return result
-
-"""
-Takes a phrase and does two-way checking of positions at a time.
-Handles the case where there is only 1 word in phrase.
- 
-:param tokenised_phrasal_query: list of stemmed query tokens
-:param dictionary: { token: (df, pointer) }
-:param postings_file: postings.txt
-:param is_boolean: whether the phrase was passed from a boolean search
-
-:return result: list of docIDs
-"""
-def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolean):
-    """
-    2-way merge: take first 2 terms to look through positions first, then add another
-    """
-
-    # postings may be empty, eg none of the query tokens are in dictionary
-    postings = get_postings(tokenised_phrasal_query, dictionary, postings_file)
-
-    result = {}
-
-    # compare 2-way at a time, only need to compare w the token before
-    for token in tokenised_phrasal_query:
-        dict1 = result
-        dict2 = postings[token] # { docID: [positions] }
-
-        # find intersection of docIDs as a list
-        shared_docs = and_merge(dict1.keys(), dict2.keys())
-
-        temp = {} # after looking through docs containing the exact phrase
-
-        for doc in shared_docs:
-            p1 = dict1[doc] # positions of token1 in doc
-            p2 = dict2[doc] # positions of token2 in doc
-
-            temp[doc] = get_consecutives(p1, p2) # can be empty list, but maintain same format for future merging
-
-        result = temp
-
-    return result # Dictionary of docs with a list of the positions of the last query token, after making sure the
-                  # positions of the other words are correct.
-                  # This will help give frequency of phrase in doc.
-
-"""
-Runs boolean search by calling AND merge function on each subquery.
-
-:param query: list of stemmed subquery tokens, phrasal searches given as a phrase without quotation but with space
-:param dictionary: { token: (df, pointer) }
-:param postings_file: postings.txt
-:return result: list of docIDs
-"""
-def boolean_search(query, dictionary, postings_file):
-    results = {} # container for results of list intersection
-    for subquery in query:
-        # check if subquery is a phrase
-        if " " in subquery:
-            # run phrasal search after splitting phrasal subquery, returns a list of relevant doc_ids
-            tokenised_phrasal_query = subquery.split(" ")
-            # this phrasal search is embedded in a boolean search, thus is_boolean = True
-            temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, True)
-
-        else:
-            # a single word
-            postings = get_postings(subquery, dictionary, postings_file)
-            temp_results = postings[subquery]
-
-        # result is reused in next iteration, merged with next subquery
-        results = and_merge(results, temp_results)
-
-    return results
-
 # """
 # :param node: contains docID, positional indices, next node, skip node
 # fields and corresponding boolean values
@@ -174,6 +56,8 @@ def boolean_search(query, dictionary, postings_file):
 #     # assuming implementation 2
 #
 #     return node.in_metadata * zone_weights[0] + node.in_body * zone_weights[1]
+
+# METHODS FOR PARSING AND EVALUATING QUERY #
 
 def parse_query(query):
     """
@@ -308,6 +192,8 @@ def get_postings(query, dictionary, postings_file):
 
     return postings
 
+# METHODS FOR VSM SEARCH FOR FREE TEXT QUERIES #
+
 """
 :param query: list of stemmed query tokens
 :param dictionary: { token: (df, pointer) }
@@ -371,12 +257,10 @@ def calculate_cosine_scores(query_vector, postings, doc_lengths):
     :return dictionary containing document IDs as key and cosine scores as values
     """
     scores = {} # key: docID, value: cosine score
-
     for token in postings:
-        for postings_list in token:
-            doc_id = postings_list # the key of the postings_list is the doc_id
+        for doc_id in postings[token]:
             # calculate weighted token frequency
-            tf = len(postings[token][postings_list])
+            tf = len(postings[token][doc_id])
             ltf = 1 + math.log(tf, 10)
 
             # update scores
@@ -392,4 +276,127 @@ def calculate_cosine_scores(query_vector, postings, doc_lengths):
 
     return scores
 
-stemmer = PorterStemmer()
+# METHODS FOR BOOLEAN 'AND' SEARCH FOR BOOLEAN QUERIES #
+
+"""
+Finds *sorted* intersection of two iterables of docIDs.
+
+:param lst1: iterable of token1
+:param lst2: iterable of token2
+
+:return: list of common docIDs
+"""
+
+def and_merge(lst1, lst2):
+    return sorted(list(set(lst1).intersection(set(lst2))))
+
+"""
+Runs boolean search by calling AND merge function on each subquery.
+
+:param query: list of stemmed subquery tokens, phrasal searches given as a phrase without quotation but with space
+:param dictionary: { token: (df, pointer) }
+:param postings_file: postings.txt
+:return result: list of docIDs
+"""
+def boolean_search(query, dictionary, postings_file):
+    results = [] # container for results of list intersection
+    for i in range(len(query)):
+        subquery = query[i]
+
+        # check if subquery is a phrase
+        if " " in subquery:
+            # run phrasal search after splitting phrasal subquery, returns a list of relevant doc_ids
+            tokenised_phrasal_query = subquery.split(" ")
+            # this phrasal search is embedded in a boolean search, thus is_boolean = True
+            temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, True)
+
+        else:
+            # a single word
+            postings = get_postings([subquery], dictionary, postings_file)
+            temp_results = postings[subquery]
+
+        # merge two lists only if subquery is not the first subquery in query
+        if (i != 0):
+            assert (results) # results must not be empty
+            results = and_merge(results, temp_results)
+        else:
+            results = temp_results
+
+    return results
+
+# METHODS FOR PHRASAL SEARCH FOR PHRASAL QUERIES #
+
+"""
+Assumes common document for two tokens have been found, and the corresponding postings lists are being used.
+
+:param positions1: a list of positions for token1 in common doc
+:param positions2: a list of positions for token2 in common doc
+"""
+def get_consecutives(positions1, positions2):
+    result = []
+    i, j = 0, 0
+    while i < len(positions1) and j < len(positions2):
+        p1 = positions1[i]
+        p2 = positions2[j]
+
+        # p2 has to be after p1
+        if p2 <= p1:
+            j += 1
+            continue
+
+        elif p2 - p1 == 1:
+            # only store the position of the last word of the phrase
+            # to facilitate recursive get_consecutive.
+            # the length of the final list will be the tf of the phrase.
+            result.append(p2)
+
+            i += 1
+            j += 1
+
+        else:
+            i += 1
+
+    return result
+
+"""
+Takes a phrase and does two-way checking of positions at a time.
+Handles the case where there is only 1 word in phrase.
+
+:param tokenised_phrasal_query: list of stemmed query tokens
+:param dictionary: { token: (df, pointer) }
+:param postings_file: postings.txt
+:param is_boolean: whether the phrase was passed from a boolean search, used for RANKING phrasal searches...
+
+:return result: list of docIDs
+"""
+def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolean):
+    """
+    2-way merge: take first 2 terms to look through positions first, then add another
+    """
+
+    # postings may be empty, eg none of the query tokens are in dictionary
+    postings = get_postings(tokenised_phrasal_query, dictionary, postings_file)
+
+    result = {}
+
+    # compare 2-way at a time, only need to compare w the token before
+    for token in tokenised_phrasal_query:
+        dict1 = result
+        dict2 = postings[token]  # { docID: [positions] }
+
+        # find intersection of docIDs as a list
+        shared_docs = and_merge(dict1.keys(), dict2.keys())
+
+        temp = {}  # after looking through docs containing the exact phrase
+
+        for doc in shared_docs:
+            p1 = dict1[doc]  # positions of token1 in doc
+            p2 = dict2[doc]  # positions of token2 in doc
+
+            temp[doc] = get_consecutives(p1, p2)  # can be empty list, but maintain same format for future merging
+
+        result = temp
+
+    return result  # Dictionary of docs with a list of the positions of the last query token, after making sure the
+    # positions of the other words are correct.
+    # This will help give frequency of phrase in doc.
