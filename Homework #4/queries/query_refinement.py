@@ -2,6 +2,32 @@ import math
 from searching_utils import get_postings
 
 """
+Create a document vector for allll documents,
+storing each token in a document and their tf-idf weight.
+:param postings: { token: { docID: [positions] } }
+"""
+def document_vectors(documents, dictionary, postings, doc_lengths):
+    doc_vectors = {}
+    for docID in documents:
+        content = documents[docID]
+
+        for token in content:
+            # calculate weighted token frequency
+            tf = len(postings[token][docID])
+            ltf = 1 + math.log(tf, 10)
+
+            idf = math.log(1/dictionary[token][0], 10) # lg(1/df)
+            doc_length = doc_lengths[docID]
+
+            # update scores, normalising all scores by dividing by document length for each doc
+            if token in scores_for_combined_vector:
+                scores_for_combined_vector[token] += ltf * idf / doc_length
+            else:
+                scores_for_combined_vector[token] = ltf * idf  / doc_length
+
+    return scores_for_combined_vector
+
+"""
 Finds the normalised tf.idf values for all tokens, and stores it in a dictionary.
 
 :param tokens: tokens to find
