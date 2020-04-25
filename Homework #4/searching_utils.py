@@ -6,6 +6,7 @@ from nltk.stem import PorterStemmer
 import time
 import math
 import pickle
+from collections import defaultdict
 
 def parse_query(query):
     """
@@ -114,7 +115,7 @@ def get_postings(query, dictionary, postings_file):
     Returns postings of each token in the given query
 
     @param query a list containing query tokens
-    @param dictionary the dictionary of Terms saved to disk
+    @param dictionary the dictionary of terms saved to disk
     @param postings_file the file containing postings written in disk
     @return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
     value of an inner dictionary with doc_id as key and list of positional indices as value.
@@ -133,11 +134,15 @@ def get_postings(query, dictionary, postings_file):
     return postings
 
 def VSM_search(query, dictionary, postings_file, doc_lengths):
+    # get postings for each token in query if that token exists in dictionary
+    postings = get_postings(query, dictionary, postings_file)
+
     # build query_vector with key: token, value: normalised w_tq of token
-    query_vector = build_query_vector(query[0], dictionary)
+    N = len(doc_lengths) # N is the total number of documents in the corpus
+    query_vector = build_query_vector(query, dictionary, N)
 
     # calculate scores with key: docID, value: cosine score of document corresponding to docID
-    scores = calculate_cosine_scores(query[0], query_vector, dictionary, postings_file, doc_lengths)
+    scores = calculate_cosine_scores(query_vector, postings, doc_lengths)
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)  # sort scores by descending order
 
     # TODO determine threshold cosine score for relevance, currently set to 0
@@ -145,29 +150,28 @@ def VSM_search(query, dictionary, postings_file, doc_lengths):
     results = [entry[0] for entry in sorted_scores if entry[1] > threshold_score]
     return results
 
-def build_query_vector(query, dictionary):
+def build_query_vector(query, dictionary, N):
     """
-    Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
+    Return normalised tf-idf score for given query in ltc scheme.
+
+    @param query the query from which query vector is to be built
+    @param dictionary the dictionary of terms saved to disk
+    @param N the number of documents in the corpus
     @return query vector containing dictionary token as key and normalised w_tq of token as value
     """
-    query_vector = {} # key: token, value: normalised w_tq of token
+    query_vector = defaultdict(float) # key: token, value: normalised w_tq of token
 
     # calculate token frequency
     for token in query:
-        if token in query_vector:
-            query_vector[token] += 1
-        else:
-            query_vector[token] = 1
+        query_vector[token] += 1
 
-    # calculate weighted token frequency
-    N = dictionary.get_no_of_docs() # N is the total number of documents in the corpus
-    w_tq_running_total = 0  # for calculating query length
+    # calculate weighted token frequency for each token
     for token in query_vector:
         # get df
-        df = dictionary.get_df(token)
+        df = dictionary[token][0] if token in dictionary else 0
 
         # calculate idf
-        idf = 0 if (df == 0) else math.log((N / df), 10)
+        idf = 0.0 if (df == 0) else math.log((N / df), 10)
 
         # calculate logarithmic token frequency
         tf = query_vector[token]
@@ -177,45 +181,33 @@ def build_query_vector(query, dictionary):
         w_tq = ltf * idf
         query_vector[token] = w_tq
 
-        # update w_tq running total for calculating query length
-        w_tq_running_total += w_tq ** 2
-
-    # calculate normalised weighted token frequency
-    query_length = math.sqrt(w_tq_running_total)
-    for token in query_vector:
-        if query_length: # check for zero query length
-            query_vector[token] /= query_length
-        else:
-            query_vector[token] = 0
-
+    # query length not calculated as it does not affect ranking of final results
     return query_vector
 
-def calculate_cosine_scores(query, query_vector, dictionary, postings_file, doc_lengths):
+def calculate_cosine_scores(query_vector, postings, doc_lengths):
     """
     Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
     @return dictionary containing document IDs as key and cosine scores as values
     """
     scores = {} # key: docID, value: cosine score
 
-    postings = get_postings(query, dictionary, postings_file)
+    for token in postings:
+        for postings_list in token:
+            doc_id = postings_list # the key of the postings_list is the doc_id
+            # calculate weighted token frequency
+            tf = len(postings[token][postings_list])
+            ltf = 1 + math.log(tf, 10)
 
-            for posting in postings_list:
-                docID = posting[0]
-
-                # calculate weighted token frequency
-                tf = posting[1]
-                ltf = 1 + math.log(tf, 10)
-
-                # update scores
-                if docID in scores:
-                    scores[docID] += ltf * query_vector[token]
-                else:
-                    scores[docID] = ltf * query_vector[token]
+            # update scores
+            if doc_id in scores:
+                scores[doc_id] += ltf * query_vector[token]
+            else:
+                scores[doc_id] = ltf * query_vector[token]
 
     # normalise all scores by dividing by document length
-    for docID, score in scores.items():
-        doc_length = dictionary.get_doc_length(docID)
-        scores[docID] = score / doc_length
+    for doc_id, score in scores.items():
+        doc_length = doc_lengths[doc_id]
+        scores[doc_id] = score / doc_length
 
     return scores
 
