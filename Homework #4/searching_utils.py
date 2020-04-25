@@ -375,8 +375,10 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolea
     postings = get_postings(tokenised_phrasal_query, dictionary, postings_file)
 
     # compare 2-way at a time, that is, compare this token with the preceding token
-    for token in tokenised_phrasal_query:
-        dict1 = result
+    for i in range(len(tokenised_phrasal_query)):
+        token = tokenised_phrasal_query[i]
+
+        temp_ = results
         dict2 = postings[token]  # { docID: [positions] }
 
         # find intersection of docIDs as a list
