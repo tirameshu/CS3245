@@ -37,7 +37,7 @@ all unique terms in this document along with their term frequencies.
 :return a dictionary consisting of unique terms and their term frequencies for calculating document length
 """
 def process_tokens(index, tokens, doc_id):
-    term_frequencies = defaultdict(int) # to calculate doc_length
+    term_frequencies = defaultdict(int) # to store document vector and calculate doc_length
 
     for pos in range(len(tokens)): # pos refers to positional index of a token in the document
         token = tokens[pos]
@@ -72,11 +72,12 @@ Writes postings and dictionary to disk
 
 :param index the index from which postings and dictionary are to be extracted
 :param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
+:param doc_vectors dictionary of doc_vectors to be written to dictionary file in disk
 :param metadata dictionary of metadata to be written to dictionary file in disk
 :param out_dict target output file to write dictionary to
 :param out_postings target output file to write postings to
 """
-def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
+def write_to_disk(index, doc_lengths, doc_vectors, metadata, out_dict, out_postings):
     print("writing to disk") # for debugging
 
     terms = {} # terms to be written to dictionary in disk. key - term, value - (df, pointer)
@@ -91,7 +92,7 @@ def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
             # then dict reconstructed from it
             postings_list = dict((k, v) for k, v in sorted(index[token].items(), key=lambda x:x[0]))
 
-            # extract Term information such as document frequency and pointer to postings
+            # extract token information such as document frequency and pointer to postings
             df = len(index[token])
             pointer = postings.tell()
             terms[token] = (df, pointer)
@@ -100,9 +101,10 @@ def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
             pickle.dump(postings_list, postings)  # save postings to disk
 
     # write dictionary to disk
-    # the pickled dictionary file contains the following data in order - doc_lengths, terms, metadata
+    # the pickled dictionary file contains the following data in order - doc_lengths, terms, doc_vectors, metadata
     with open(out_dict, 'wb') as dictionary:
         print("writing dictionary to disk")  # for debugging
         pickle.dump(doc_lengths, dictionary)
         pickle.dump(terms, dictionary)
+        pickle.dump(doc_vectors, dictionary)
         pickle.dump(metadata, dictionary)

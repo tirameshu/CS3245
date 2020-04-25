@@ -22,22 +22,16 @@ Builds index by extracting key information from given dataset file.
 def build_index(in_file, out_dict, out_postings):
     print('indexing...')
 
-    # initialise a dictionary to contain the index where key is the processed token, value is a dictionary of Nodes
-    # for the dictionary of Nodes, key is doc_id and value is Node
-    # Node class encapsulates doc_id, positional indices (hence tf), next node, and skip node
-    # We adopt Single-Pass In-Memory Indexing (SPIM) and index directly when a term is encountered
-    # Correct storage of zones is contingent on SPIM
-    # the "title" and "court" zones are extracted and stored in separate dictionaries
-    # the "date_published" zone is deemed irrelevant and is not stored
-    index = {}
+    index = {} # key - token, value - dictionary of doc id as key and list of positional indices as value
 
-    doc_lengths = {}  # dictionary to store doc_lengths, with doc_id as key and doc_length as value
-    metadata = {} # dictionary to store metadata, with doc_id as key and list containing title, date, and court as value
+    doc_lengths = {}  # to store doc_lengths, with doc_id as key and doc_length as value
+    doc_vectors = {} # to store doc vectors for pseudo-RF, with doc_id as key and dict of tokens as key and tf as value
+    metadata = {} # to store metadata, with doc_id as key and list containing title, date, and court as value
 
     # read and process each row in csv file
     with open(in_file, 'r', errors='ignore') as csvfile:
-        file_reader = csv.DictReader(csvfile)
         # the values in the first row of file f are used as fieldnames
+        file_reader = csv.DictReader(csvfile)
         count = 0 # count number of docs indexed for debugging
         for row in file_reader:
             count += 1
@@ -49,8 +43,10 @@ def build_index(in_file, out_dict, out_postings):
             tokens = collect_tokens(content)
 
             # process all tokens to build index
-            # returns a dictionary of term frequencies to calculate document length
+            # returns a dictionary of term frequencies to store document vector and to calculate document length
+            # document vectors stored in dictionary on disk for pseudo relevance feedback using Rocchio algorithm
             term_frequencies = process_tokens(index, tokens, doc_id)
+            doc_vectors[doc_id] = term_frequencies
 
             # calculate and store document length
             doc_length = calculate_doc_length([value for value in term_frequencies.values()])
@@ -63,7 +59,7 @@ def build_index(in_file, out_dict, out_postings):
             metadata[doc_id] = [title, date, court]
 
     # write both dictionary and postings to disk
-    write_to_disk(index, doc_lengths, metadata, out_dict, out_postings)
+    write_to_disk(index, doc_lengths, doc_vectors, metadata, out_dict, out_postings)
 
     print("done indexing")
 

@@ -423,6 +423,7 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
     for i in range(len(tokenised_phrasal_query)):
         token = tokenised_phrasal_query[i]
 
+        # immediately return empty list if token is not in dictionary
         if token not in dictionary:
             return []
 
@@ -437,14 +438,21 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
             # find intersection of docIDs as a list
             shared_docs = and_merge(results.keys(), token_postings.keys())
 
+            print("shared docs:")
+            print(shared_docs)
+
             intermediate_results = {}  # container to hold intermediate results of positional intersect
             for docID in shared_docs:
                 p1 = results[docID]  # list of positions of last word in previous iteration
                 p2 = token_postings[docID]  # positions of current token
 
-                intermediate_results[docID] = get_consecutives(p1, p2)
+                consecutive_positions = get_consecutives(p1, p2)
+                if consecutive_positions:
+                    intermediate_results[docID] = consecutive_positions
 
             results = intermediate_results
+        print("intermediate results:")
+        print(results.items())
 
     if not is_boolean:
         return rank_phrasal_by_tf(results, doc_lengths)
