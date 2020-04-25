@@ -1,22 +1,20 @@
 from collections import defaultdict
-import math
-from nltk.tokenize import word_tokenize
-from nltk.tokenize import sent_tokenize
-from nltk.stem import PorterStemmer
-import pickle
-
-from term import Term
 from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import sent_tokenize
+from nltk.tokenize import word_tokenize
+import math
+import pickle
 
 stop_words = set(stopwords.words('english'))
 
-def collect_tokens(data):
-    """
-    Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering,
-    and stemming.
+"""
+Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering,
+and stemming.
 
-    :param data data string to be tokenized
-    """
+:param data data string to be tokenized
+"""
+def collect_tokens(data):
     tokens = []
     stemmer = PorterStemmer() # use Porter stemmer for stemming
 
@@ -33,16 +31,16 @@ def collect_tokens(data):
 
     return tokens
 
-def process_tokens(index, tokens, doc_id):
-    """
-    Updates index with information from each token in the given list of tokens. Returns a mapping of
-    all unique terms in this document along with their term frequencies.
+"""
+Updates index with information from each token in the given list of tokens. Returns a mapping of
+all unique terms in this document along with their term frequencies.
 
-    :param index index to be updated
-    :param tokens the tokens to be processed
-    :param doc_id the document ID of the document the tokens are found in
-    :return a dictionary consisting of unique terms and their term frequencies for calculating document length
-    """
+:param index index to be updated
+:param tokens the tokens to be processed
+:param doc_id the document ID of the document the tokens are found in
+:return a dictionary consisting of unique terms and their term frequencies for calculating document length
+"""
+def process_tokens(index, tokens, doc_id):
     term_frequencies = defaultdict(int) # to calculate doc_length
 
     for pos in range(len(tokens)): # pos refers to positional index of a token in the document
@@ -64,25 +62,25 @@ def process_tokens(index, tokens, doc_id):
 
     return term_frequencies
 
+"""
+Calculates document length given a list of term frequencies
+"""
 def calculate_doc_length(tfs):
-    """
-    Calculates document length given a list of term frequencies
-    """
     sum = 0
     for tf in tfs:
         sum += (1 + math.log(tf, 10))**2 # tf is guaranteed to be at least 1
     return math.sqrt(sum)
 
-def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
-    """
-    Writes postings and dictionary to disk
+"""
+Writes postings and dictionary to disk
 
-    :param index the index from which postings and dictionary are to be extracted
-    :param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
-    :param metadata dictionary of metadata to be written to dictionary file in disk
-    :param out_dict target output file to write dictionary to
-    :param out_postings target output file to write postings to
-    """
+:param index the index from which postings and dictionary are to be extracted
+:param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
+:param metadata dictionary of metadata to be written to dictionary file in disk
+:param out_dict target output file to write dictionary to
+:param out_postings target output file to write postings to
+"""
+def write_to_disk(index, doc_lengths, metadata, out_dict, out_postings):
     print("writing to disk") # for debugging
 
     terms = {} # terms to be written to dictionary in disk. key - term, value - (df, pointer)

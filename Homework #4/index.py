@@ -12,14 +12,14 @@ sys.setrecursionlimit(1000000) # increase to enable write to disk using pickle
 def usage():
     print("usage: " + sys.argv[0] + " -i dataset-file -d dictionary-file -p postings-file")
 
-def build_index(in_file, out_dict, out_postings):
-    """
-    Builds index by extracting key information from given dataset file.
+"""
+Builds index by extracting key information from given dataset file.
 
-    :param in_file input dataset file the index is built from
-    :param out_dict target output file to write dictionary to
-    :param out_postings target output file to write postings to
-    """
+:param in_file input dataset file the index is built from
+:param out_dict target output file to write dictionary to
+:param out_postings target output file to write postings to
+"""
+def build_index(in_file, out_dict, out_postings):
     print('indexing...')
 
     # initialise a dictionary to contain the index where key is the processed token, value is a dictionary of Nodes
@@ -89,7 +89,6 @@ if dataset_file == None or output_file_postings == None or output_file_dictionar
     usage()
     sys.exit(2)
 
-# build_index(input_directory, output_file_dictionary, output_file_postings)
 start_time = time.time()  # clock the run
 build_index(dataset_file, output_file_dictionary, output_file_postings)
 end_time = time.time()
