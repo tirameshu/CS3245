@@ -8,11 +8,17 @@ stemmer = PorterStemmer()
 """
 Rank phrasal search by tf (log) of the entire phrase.
 
-:param doc_to_tf: a dictionary of {docID: tf_of_phrase}
+:param intermediate_result: a dictionary of {docID: [positions]}, passed from phrasal_search
 :param doc_lengths: a dictionary of { docID: doc_length }, to normalise
 """
-def rank_phrasal_by_tf(doc_to_tf, doc_lengths):
-    pass
+def rank_phrasal_by_tf(intermediate_result, doc_lengths):
+    doc_to_tf = {} # docID: normalised tf
+    for docID in intermediate_result:
+        doc_to_tf[docID] = len(intermediate_result[docID]) / doc_lengths[docID] # tf / doc_length, normalisation
+
+    ranked = sorted(doc_to_tf.items(), key=lambda x: x[1], reverse=True) # sorted by normalised tf
+    return [x[0] for x in ranked] # return only docID
+
 
 """
 Ranking by tf of the query taken as free text.
