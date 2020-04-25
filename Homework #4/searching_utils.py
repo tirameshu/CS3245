@@ -121,19 +121,20 @@ def parse_phrasal_query(query):
     parsed_phrasal_query = " ".join(str(i) for i in stemmed_tokens)
     return [parsed_phrasal_query]
 
+"""
+Evaluate a parsed query by calling the appropriate search functions.
+
+If the parsed query list has more than one item, call boolean AND search. If the parsed query list has one item,
+and if the item is a phrase, call phrasal search. Else, call vector space model search. One-word phrasal queries are
+treated as one-word free text queries and searched using VSM.
+
+:param query a list of lists corresponding to the parsed query to be evaluated
+:param dictionary the dictionary of Terms saved to disk
+:param doc_lengths the dictionary of document lengths with doc_id as key and document length as value
+:param postings_file the file containing postings written in disk
+:return a list of relevant documents depending on the query
+"""
 def evaluate_query(query, dictionary, doc_lengths, postings_file):
-    """
-    Evaluate a parsed query by calling the appropriate search functions.
-
-    If the parsed query list has more than one item, call boolean AND search. If the parsed query list has one item,
-    and if the item is a phrase, call phrasal search. Else, call vector space model search.
-
-    :param query a list of lists corresponding to the parsed query to be evaluated
-    :param dictionary the dictionary of Terms saved to disk
-    :param doc_lengths the dictionary of document lengths with doc_id as key and document length as value
-    :param postings_file the file containing postings written in disk
-    :return a list of relevant documents depending on the query
-    """
     # check for empty query
     if not query:
         return []
@@ -148,14 +149,14 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
         return results
 
     else: # no AND, either phrasal query or free text query
-
         # this should be true as non-boolean searches should only have 1 subquery.
         assert(len(query) == 1)
 
-        # check for phrasal query
-        if " " in query[0]:
+        # check for phrasal query by checking if there is a space in the first subquery
+        first_subquery = query[0][0]
+        if " " in first_subquery:
             # obtain individual tokens in phrasal query
-            tokenised_phrasal_query = query[0].split(" ")
+            tokenised_phrasal_query = first_subquery.split(" ")
 
             # call phrasal search, which will obtain the postings as required
             # this phrasal search is not embedded in a boolean search, thus is_boolean = False
@@ -370,16 +371,13 @@ Handles the case where there is only 1 word in phrase.
 :return result: list of docIDs
 """
 def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolean):
-    """
-    2-way merge: take first 2 terms to look through positions first, then add another
-    """
+    results = {} # key - doc_id, value - list of positions in document of the last word in phrase
 
-    # postings may be empty, eg none of the query tokens are in dictionary
+    # retrieve postings of each token in phrasal query
+    # postings may be empty, if none of the query tokens are in dictionary
     postings = get_postings(tokenised_phrasal_query, dictionary, postings_file)
 
-    result = {}
-
-    # compare 2-way at a time, only need to compare w the token before
+    # compare 2-way at a time, that is, compare this token with the preceding token
     for token in tokenised_phrasal_query:
         dict1 = result
         dict2 = postings[token]  # { docID: [positions] }
