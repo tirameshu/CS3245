@@ -217,7 +217,6 @@ def get_postings(query, dictionary, postings_file):
                 postings[token] = postings_list
                 post.seek(0)  # rewind
 
-    print(postings)
     return postings
 
 # METHODS FOR VSM SEARCH FOR FREE TEXT QUERIES #
