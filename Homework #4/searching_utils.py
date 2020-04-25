@@ -202,7 +202,7 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
 
 def get_postings(query, dictionary, postings_file):
     """
-    Returns postings of each token in the given query
+    Returns postings of each token in the given query.
 
     :param query: a list containing query tokens
     :param dictionary the dictionary of terms saved to disk
@@ -344,6 +344,10 @@ def boolean_search(query, dictionary, postings_file, doc_lengths):
         else:
             # a single word
             postings = get_postings([subquery], dictionary, postings_file)
+
+            if subquery not in dictionary:
+                return []
+
             temp_results = postings[subquery]
 
         # merge two lists only if subquery is not the first subquery in query
@@ -413,6 +417,10 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
     # compare 2-way at a time, that is, compare this token with the preceding token
     for i in range(len(tokenised_phrasal_query)):
         token = tokenised_phrasal_query[i]
+
+        if token not in dictionary:
+            return []
+
         token_postings = postings[token] # get { docID: [positions] }
 
         # continue loop if token is the first token in phrase after setting temp_results to postings of first token
@@ -434,6 +442,6 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
             results = intermediate_results
 
     if not is_boolean:
-        results = rank_phrasal_by_tf(results, doc_lengths)
+        return rank_phrasal_by_tf(results, doc_lengths)
 
     return list(results.keys())
