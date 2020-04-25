@@ -24,20 +24,22 @@ Ranking by tf of the query taken as free text.
 :param doc_lengths: a dictionary of { docID: doc_length }, to normalise
 """
 def rank_boolean_by_tf(query_tokens, relevant_docIDs, dictionary, postings_file, doc_lengths):
-    postings = {} # { token: { docID: tf } } --> { token: sorted(docID, tf) }
+    filtered_postings = {} # { token: { docID: tf } } --> { token: sorted(docID, tf) }
     scores = {} # { docID: total_tf_for_all_query_tokens }
 
     # get postings for all query tokens first
-    for token in query_tokens:
-        temp = get_postings(query_tokens, dictionary, postings_file)
-        for docID in temp:
-            if docID in relevant_docIDs:
-                tf = len(temp[docID])
+    temp = get_postings(query_tokens, dictionary, postings_file)
 
-                if token not in postings:
-                    postings[token] = { docID: tf} # tf(token) = len(positions)
+    for token in query_tokens:
+        docs = temp[token]
+        for docID in docs:
+            if docID in relevant_docIDs:
+                tf = len(temp[docID]) # no. of occurrences = frequency
+
+                if token not in filtered_postings:
+                    filtered_postings[token] = {docID: tf} # tf(token) = len(positions)
                 else:
-                    postings[token][docID] = tf # each token only encounters each docID once
+                    filtered_postings[token][docID] = tf # each token only encounters each docID once
 
                 if docID not in scores:
                     scores[docID] = tf
@@ -53,9 +55,7 @@ def rank_boolean_by_tf(query_tokens, relevant_docIDs, dictionary, postings_file,
 
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)  # sort scores by descending order
 
-    # TODO determine threshold cosine score for relevance, currently set to 0
-    threshold_score = 0
-    results = [entry[0] for entry in sorted_scores if entry[1] > threshold_score]
+    results = [entry[0] for entry in sorted_scores]
     return results
 
 # """
@@ -164,7 +164,7 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
         flattened_query = [subquery for inner_list in query for subquery in inner_list]
 
         # call boolean search, which will obtain the postings as required
-        results = boolean_search(flattened_query, dictionary, postings_file)
+        results = boolean_search(flattened_query, dictionary, postings_file, doc_lengths)
         # TODO rank results from boolean search using VSM search on query
         return results
 
@@ -180,7 +180,7 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
 
             # call phrasal search, which will obtain the postings as required
             # this phrasal search is not embedded in a boolean search, thus is_boolean = False
-            results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, False)
+            results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, False)
             return results
 
         else: # free text query, run VSM search
@@ -320,7 +320,7 @@ Runs boolean search by calling AND merge function on each subquery.
 :param postings_file: postings.txt
 :return result: list of docIDs
 """
-def boolean_search(query, dictionary, postings_file):
+def boolean_search(query, dictionary, postings_file, doc_lengths):
     results = [] # container for results of list intersection
     for i in range(len(query)):
         subquery = query[i]
@@ -330,7 +330,7 @@ def boolean_search(query, dictionary, postings_file):
             # run phrasal search after splitting phrasal subquery, returns a list of relevant doc_ids
             tokenised_phrasal_query = subquery.split(" ")
             # this phrasal search is embedded in a boolean search, thus is_boolean = True
-            temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, True)
+            temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, True)
 
         else:
             # a single word
@@ -344,7 +344,10 @@ def boolean_search(query, dictionary, postings_file):
         else:
             results = temp_results
 
-    return results
+    # rank results
+    ranked_results = rank_boolean_by_tf(query, results, dictionary, postings_file, doc_lengths)
+
+    return ranked_results # ranked list of docIDs
 
 # METHODS FOR PHRASAL SEARCH FOR PHRASAL QUERIES #
 
@@ -391,7 +394,7 @@ Handles the case where there is only 1 word in phrase.
 
 :return result: list of docIDs
 """
-def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolean):
+def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, is_boolean):
     results = {} # key - doc_id, value - list of positions in document of the last word in phrase
 
     # retrieve postings of each token in phrasal query
@@ -420,5 +423,8 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolea
                 intermediate_results[doc_id] = get_consecutives(p1, p2)
 
             results = intermediate_results
+
+    if not is_boolean:
+        results = rank_phrasal_by_tf(results, doc_lengths)
 
     return list(results.keys())

@@ -42,7 +42,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # returned result will be alr ranked:
         # free text: ranked by VSM
         # non-boolean phrase: ranked by tf of phrase
-        #
+
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
 
         print("retrieving " + str(len(results)) + " relevant results") # for debugging
