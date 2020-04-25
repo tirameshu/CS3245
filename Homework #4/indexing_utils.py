@@ -1,16 +1,13 @@
 from collections import defaultdict
-from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import sent_tokenize
 from nltk.tokenize import word_tokenize
 import math
 import pickle
 
-stop_words = set(stopwords.words('english'))
-
 """
-Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering, stemming
-, and stopword removal.
+Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering, and
+stemming.
 
 :param data data string to be tokenized
 """
@@ -27,11 +24,7 @@ def collect_tokens(data):
             if word.isalnum():
                 word = word.lower() # case folding
                 word = stemmer.stem(word) # stemming
-
-                # stop word removal
-                if word not in stop_words:
-                    tokens.append(word)
-
+                tokens.append(word)
     return tokens
 
 """
