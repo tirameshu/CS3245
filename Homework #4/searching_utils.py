@@ -161,7 +161,7 @@ treated as one-word free text queries and searched using VSM.
 
 :param query a list of lists corresponding to the parsed query to be evaluated
 :param dictionary the dictionary of Terms saved to disk
-:param doc_lengths the dictionary of document lengths with doc_id as key and document length as value
+:param doc_lengths the dictionary of document lengths with docID as key and document length as value
 :param postings_file the file containing postings written in disk
 
 :return a list of relevant documents depending on the query
@@ -210,7 +210,7 @@ def get_postings(query, dictionary, postings_file):
     :param dictionary the dictionary of terms saved to disk
     :param postings_file the file containing postings written in disk
     :return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
-    value of an inner dictionary with doc_id as key and list of positional indices as value.
+    value of an inner dictionary with docID as key and list of positional indices as value.
     """
     postings = {}
 
@@ -291,21 +291,21 @@ def calculate_cosine_scores(query_vector, postings, doc_lengths):
     """
     scores = {} # key: docID, value: cosine score
     for token in postings:
-        for doc_id in postings[token]:
+        for docID in postings[token]:
             # calculate weighted token frequency
-            tf = len(postings[token][doc_id])
+            tf = len(postings[token][docID])
             ltf = 1 + math.log(tf, 10)
 
             # update scores
-            if doc_id in scores:
-                scores[doc_id] += ltf * query_vector[token]
+            if docID in scores:
+                scores[docID] += ltf * query_vector[token]
             else:
-                scores[doc_id] = ltf * query_vector[token]
+                scores[docID] = ltf * query_vector[token]
 
     # normalise all scores by dividing by document length
-    for doc_id, score in scores.items():
-        doc_length = doc_lengths[doc_id]
-        scores[doc_id] = score / doc_length
+    for docID, score in scores.items():
+        doc_length = doc_lengths[docID]
+        scores[docID] = score / doc_length
 
     return scores
 
@@ -338,7 +338,7 @@ def boolean_search(query, dictionary, postings_file, doc_lengths):
 
         # check if subquery is a phrase
         if " " in subquery:
-            # run phrasal search after splitting phrasal subquery, returns a list of relevant doc_ids
+            # run phrasal search after splitting phrasal subquery, returns a list of relevant docIDs
             tokenised_phrasal_query = subquery.split(" ")
             # this phrasal search is embedded in a boolean search, thus is_boolean = True
             temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, True)
@@ -413,7 +413,7 @@ Handles the case where there is only 1 word in phrase.
 :return result: list of docIDs
 """
 def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, is_boolean):
-    results = {} # key - doc_id, value - list of positions in document of the last word in phrase
+    results = {} # key - docID, value - list of positions in document of the last word in phrase
 
     # retrieve postings of each token in phrasal query
     # postings may be empty, if none of the query tokens are in dictionary
@@ -442,13 +442,13 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
             print(shared_docs)
 
             intermediate_results = {}  # container to hold intermediate results of positional intersect
-            for doc_id in shared_docs:
-                p1 = results[doc_id]  # list of positions of last word in previous iteration
-                p2 = token_postings[doc_id]  # positions of current token
+            for docID in shared_docs:
+                p1 = results[docID]  # list of positions of last word in previous iteration
+                p2 = token_postings[docID]  # positions of current token
 
                 consecutive_positions = get_consecutives(p1, p2)
                 if consecutive_positions:
-                    intermediate_results[doc_id] = consecutive_positions
+                    intermediate_results[docID] = consecutive_positions
 
             results = intermediate_results
         print("intermediate results:")
