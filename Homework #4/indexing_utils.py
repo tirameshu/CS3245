@@ -60,7 +60,7 @@ def process_tokens(index, tokens, doc_id):
 
         else:
             # if token does not exist in index, create new entry in index
-            index[token] = {doc_id : []}
+            index[token] = {doc_id : [pos]}
 
     return term_frequencies
 

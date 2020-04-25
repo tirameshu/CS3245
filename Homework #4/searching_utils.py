@@ -9,16 +9,23 @@ import pickle
 from collections import defaultdict
 
 """
-Ranking by tf (log)
+Rank phrasal search by tf (log) of the entire phrase.
+
+:param doc_to_tf: a dictionary of {docID: tf_of_phrase}
+:param doc_lengths: a dictionary of { docID: doc_length }, to normalise
+"""
+def rank_phrasal_by_tf(doc_to_tf, doc_lengths):
+    pass
+
+"""
+Ranking by tf (log) of the query taken as free text.
 
 :param query: list of stemmed query tokens
-:param dictionary: { token: (df, pointer) }
+:param relevant_docIDs: a list of relevant docIDs for the query
 :param postings: postings 
-:param doc_lengths: a dictionary of { docID: doc_length }
+:param doc_lengths: a dictionary of { docID: doc_length }, to normalise
 """
-def rank_boolean_VSM(query, dictionary, postings, doc_lengths):
-    # filter doc_length to correspond to smaller sample space containing
-    # only the retrieved docIDs in caller.
+def rank_boolean_by_tf(query, relevant_docIDs, postings, doc_lengths):
 
     # get postings for each token in query if that token exists in dictionary
 
