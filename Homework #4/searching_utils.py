@@ -36,6 +36,10 @@ def rank_boolean_by_tf(query_tokens, relevant_docIDs, dictionary, postings_file,
     # get postings for all query tokens first
     temp = get_postings(query_tokens, dictionary, postings_file)
 
+
+    # rank by cosine scoring!!!!!!!
+
+
     for token in query_tokens:
         docs = temp[token]
         for docID in docs:
