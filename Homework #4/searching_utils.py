@@ -191,6 +191,7 @@ def get_postings(query, dictionary, postings_file):
                 postings[token] = postings_list
                 post.seek(0)  # rewind
 
+    print(postings)
     return postings
 
 # METHODS FOR VSM SEARCH FOR FREE TEXT QUERIES #
@@ -380,23 +381,24 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, is_boolea
     # compare 2-way at a time, that is, compare this token with the preceding token
     for i in range(len(tokenised_phrasal_query)):
         token = tokenised_phrasal_query[i]
+        token_postings = postings[token] # get { docID: [positions] }
 
-        temp_ = results
-        dict2 = postings[token]  # { docID: [positions] }
+        # continue loop if token is the first token in phrase after setting temp_results to postings of first token
+        if (i == 0):
+            results = token_postings
+        else:
+            assert (results) # results must not be empty
+            # token is not first token, continue with phrasal search
+            # find intersection of docIDs as a list
+            shared_docs = and_merge(results.keys(), token_postings.keys())
 
-        # find intersection of docIDs as a list
-        shared_docs = and_merge(dict1.keys(), dict2.keys())
+            intermediate_results = {}  # container to hold intermediate results of positional intersect
+            for doc_id in shared_docs:
+                p1 = results[doc_id]  # list of positions of last word in previous iteration
+                p2 = token_postings[doc_id]  # positions of current token
 
-        temp = {}  # after looking through docs containing the exact phrase
+                intermediate_results[doc_id] = get_consecutives(p1, p2)
 
-        for doc in shared_docs:
-            p1 = dict1[doc]  # positions of token1 in doc
-            p2 = dict2[doc]  # positions of token2 in doc
+            results = intermediate_results
 
-            temp[doc] = get_consecutives(p1, p2)  # can be empty list, but maintain same format for future merging
-
-        result = temp
-
-    return result  # Dictionary of docs with a list of the positions of the last query token, after making sure the
-    # positions of the other words are correct.
-    # This will help give frequency of phrase in doc.
+    return list(results.keys())

@@ -9,8 +9,8 @@ import pickle
 stop_words = set(stopwords.words('english'))
 
 """
-Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering,
-and stemming.
+Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering, stemming
+, and stopword removal.
 
 :param data data string to be tokenized
 """
@@ -24,10 +24,13 @@ def collect_tokens(data):
         words = word_tokenize(sentence) # word tokenizing
         for word in words:
             # only process alphanumeric tokens
-            if word.isalnum() and word not in stop_words:
+            if word.isalnum():
                 word = word.lower() # case folding
                 word = stemmer.stem(word) # stemming
-                tokens.append(word)
+
+                # stop word removal
+                if word not in stop_words:
+                    tokens.append(word)
 
     return tokens
 
