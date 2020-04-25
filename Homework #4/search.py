@@ -15,158 +15,6 @@ def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
 
 """
-:param query: list of stemmed query tokens, phrasal searches given as a phrase without quotation but with space
-:param postings: dictionary of { docID: [positions] }
-:return temp1: list of docIDs
-"""
-
-def boolean_search(query_tokens, postings):
-    temp1 = []
-    for token in query_tokens:
-        if " " in token:
-            # token is a phrase
-            dic2 = phrasal_query(token, postings)
-
-        else:
-            # a single word
-            dic2 = postings[token]
-
-        # boolean query only cares about whether token is in doc,
-        # disregards positions
-        temp2 = list(dic2.keys())
-
-        # result is reused in next iteration, merged with next token
-        temp1 = and_merge(temp1, temp2)
-
-    return temp1
-
-"""
-:param lst1: list of Nodes from the first part of AND
-:param lst2: list of Nodes from the second part of AND
-:return: list of docIDs
-"""
-
-def and_merge(lst1, lst2):
-    return list(set(lst1).intersection(set(lst2)))
-
-"""
-:param node: contains docID, positional indices, next node, skip node
-fields and corresponding boolean values
-
-:param zone_weights: weights given to each zone to be multiplied with boolean
-:return zone_score: sum of zone_score for each zone
-"""
-def get_weighted_zone(node, zone_weights):
-    """
-    implementation 1: every zone contains a boolean value
-
-    implementation 2: node has attributes "in_metadata" and "in_body",
-    with boolean values for both, so calculation is only done based on these two.
-    """
-    # assuming implementation 2
-
-    return node.in_metadata * zone_weights[0] + node.in_body * zone_weights[1]
-
-"""
-Assumes common document for two tokens have been found, and the corresponding postings lists are being used.
-
-:param positions1: a list of positions for token1 in common doc
-:param positions2: a list of positions for token2 in common doc
-"""
-def get_consecutives(positions1, positions2):
-    result = []
-    i, j = 0, 0
-    while i < len(positions1) and j < len(positions2):
-        p1 = positions1[i]
-        p2 = positions2[j]
-
-        # p2 has to be after p1
-        if p2 <= p1:
-            j += 1
-            continue
-
-        elif p2 - p1 == 1:
-            result.append((p1, p2))
-
-            i += 1
-            j += 1
-
-        else:
-            i += 1
-
-    return result
-
-"""
-:param tokenised_phrasal_query: list of stemmed query tokens
-:param dictionary: { token: (df, pointer) }
-:param postings_file: all postings, accessed by pointers, in format { docID: [positions] }
-
-:return result: list of docIDs
-"""
-def phrasal_search(tokenised_phrasal_query, dictionary, postings_file):
-    """
-    postings:
-    {
-        token: {
-            docID1: [positions],
-            docID2: [positions],
-            ...
-        }
-        ...
-    }
-
-    2-way merge: take first 2 terms to look through positions first, then add another
-    """
-
-    simplified_posting = {}
-    # only store { token: { docID: [positions] } }
-    for token in query_tokens:
-        if token not in simplified_posting:
-            simplified_posting[token] = {}
-
-        docs = simplified_posting[token]
-
-        for node in postings[token]:
-            docID = node.get_doc_id() # should only encounter each docID once
-            docs[docID] = node.get_positions()
-
-    # adding the docs and corresponding positions for all query tokens
-    # needs to be refreshed for every new query
-    phrase_postings = []
-
-    for token in query_tokens:
-        if token in simplified_posting:
-            phrase_postings.append(simplified_posting[token]) # returns a dictionary of { docID : positions }
-            # words not in dictionary are ignored
-
-    if phrase_postings:
-        result = phrase_postings[0] # in case there's only one word in the phrase that is in the dict
-
-        # compare 2-way at a time, only need to compare w the token before
-        for i in range (1, len(phrase_postings)): # TODO assuming for now a normal case only
-            token1_docs = result
-            token2_docs = phrase_postings[i]
-
-            # find intersection of docIDs
-            shared_docs = set(token1_docs.keys()).intersection(set(token2_docs.keys()))
-
-            temp = {} # after looking through docs containing the exact phrase
-
-            for doc in shared_docs:
-                p1 = token1_docs[doc]
-                p2 = token2_docs[doc]
-
-                temp[doc] = get_consecutives(p1, p2) # can be empty list, but maintain same format for future merging
-
-            result = temp
-
-        return result # dictionary of docs with a list of the positions of the last query token, after making sure the
-                      # positions of the other words are correct
-
-    else: # if no token in phrase is in dictionary
-        return {}
-
-"""
 For query containing AND: we will first merge the posting lists of
 all query tokens, then conduct zone-scoring.
 
@@ -211,9 +59,12 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
         # evaluate query to obtain results
         parsed_query = parse_query(query)
+
+        # returned result will be alr ranked:
+        # free text: ranked by VSM
+        # non-boolean phrase: ranked by tf of phrase
+        #
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
-
-
 
         result_string = " ".join(str(i) for i in results)
         # TODO order relevant documents by processing metadata
