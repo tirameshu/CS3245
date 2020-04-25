@@ -41,6 +41,8 @@ def rank_boolean_by_tf(query_tokens, relevant_docIDs, dictionary, postings_file,
 
 
     for token in query_tokens:
+        if token not in dictionary:
+            continue
         docs = temp[token]
         for docID in docs:
             if docID in relevant_docIDs:
@@ -358,7 +360,10 @@ def boolean_search(query, dictionary, postings_file, doc_lengths):
             results = temp_results
 
     # rank results
-    ranked_results = rank_boolean_by_tf(query, results, dictionary, postings_file, doc_lengths)
+    if results:
+        ranked_results = rank_boolean_by_tf(query, results, dictionary, postings_file, doc_lengths)
+    else:
+        ranked_results = []
 
     return ranked_results # ranked list of docIDs
 
