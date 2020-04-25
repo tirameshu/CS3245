@@ -346,7 +346,10 @@ def get_consecutives(positions1, positions2):
             continue
 
         elif p2 - p1 == 1:
-            result.append((p1, p2))
+            # only store the position of the last word of the phrase
+            # to facilitate recursive get_consecutive.
+            # the length of the final list will be the tf of the phrase.
+            result.append(p2)
 
             i += 1
             j += 1
