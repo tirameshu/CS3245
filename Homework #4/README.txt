@@ -49,6 +49,10 @@ Assumption:
         the actual publishing date of another case.
 3. User will enter phrasal queries appropriately, ie a phrase enclosed on both ends with quotation marks.
     3.1 As such, as long as a query begins with a quotation mark, we will treat the subquery as a phrase.
+4. "Correction" for user mistake
+    4.1 If the query is `cat AND `, we take it as that the user has made a mistake, and that at least the
+        first term is still relevant to what the user is searching for, thus still returning relevant documents
+        based on that.
 
 1. Query Processing.
     1.1 For every search, delimit with AND op, and first retrieve for each query term separately.
