@@ -47,6 +47,8 @@ Assumption:
     based on cosine similarity) has query in its title.
     2.1 Takes care of situations where say a date appears multiple times in one case but is
         the actual publishing date of another case.
+3. User will enter phrasal queries appropriately, ie a phrase enclosed on both ends with quotation marks.
+    3.1 As such, as long as a query begins with a quotation mark, we will treat the subquery as a phrase.
 
 1. Query Processing.
     1.1 For every search, delimit with AND op, and first retrieve for each query term separately.

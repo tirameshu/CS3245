@@ -24,8 +24,11 @@ def parse_query(query):
 
     parsed_query = []
 
+    # for-loop appends a parsed subquery list for every subquery encountered,
+    # and since subqueries are produced by delimiting with "AND",
+    # only boolean queries will have multiple subqueries.
     for subquery in split_query:
-        # check for empty query
+        # ignores for empty query
         if not subquery:
             continue
 
@@ -94,6 +97,10 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
         return results
 
     else: # no AND, either phrasal query or free text query
+
+        # this should be true as non-boolean searches should only have 1 subquery.
+        assert(len(query) == 1)
+
         # check for phrasal query
         if " " in query[0]:
             # obtain individual tokens in phrasal query

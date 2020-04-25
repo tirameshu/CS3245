@@ -97,19 +97,20 @@ def get_consecutives(positions1, positions2):
     return result
 
 """
-:param query_tokens: list of stemmed query tokens
-:param postings: dictionary of terms and their positions for each doc,
-assumes a list has alr been obtained for all query tokens
+:param tokenised_phrasal_query: list of stemmed query tokens
+:param dictionary: { token: (df, pointer) }
+:param postings_file: all postings, accessed by pointers, in format { docID: [positions] }
 
-:return result: dictionary of { docID: [positions] }
+:return result: list of docIDs
 """
-def phrasal_query(query_tokens, postings):
+def phrasal_search(tokenised_phrasal_query, dictionary, postings_file):
     """
     postings:
     {
-        Term1: {
-            Node1 containing [position1, position2, ...]
-            Node2 containing [position1, position2, ...]
+        token: {
+            docID1: [positions],
+            docID2: [positions],
+            ...
         }
         ...
     }
@@ -166,20 +167,6 @@ def phrasal_query(query_tokens, postings):
         return {}
 
 """
-posting = {
-    "term1": {
-        1: [1, 2, 4, 5],
-        2: [2, 6, 9]
-    },
-
-    "term2": {
-        1: [1, 3, 6],
-        2: [1, 6, 10]
-    }
-}
-"""
-
-"""
 For query containing AND: we will first merge the posting lists of
 all query tokens, then conduct zone-scoring.
 
@@ -225,6 +212,9 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # evaluate query to obtain results
         parsed_query = parse_query(query)
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
+
+
+
         result_string = " ".join(str(i) for i in results)
         # TODO order relevant documents by processing metadata
 
