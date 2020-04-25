@@ -11,21 +11,24 @@ stemming.
 
 :param data data string to be tokenized
 """
+
+
 def collect_tokens(data):
     tokens = []
-    stemmer = PorterStemmer() # use Porter stemmer for stemming
+    stemmer = PorterStemmer()  # use Porter stemmer for stemming
 
     # collect tokens from data
-    sentences = sent_tokenize(data) # sentence tokenizing
+    sentences = sent_tokenize(data)  # sentence tokenizing
     for sentence in sentences:
-        words = word_tokenize(sentence) # word tokenizing
+        words = word_tokenize(sentence)  # word tokenizing
         for word in words:
             # only process alphanumeric tokens
             if word.isalnum():
-                word = word.lower() # case folding
-                word = stemmer.stem(word) # stemming
+                word = word.lower()  # case folding
+                word = stemmer.stem(word)  # stemming
                 tokens.append(word)
     return tokens
+
 
 """
 Updates index with information from each token in the given list of tokens. Returns a mapping of
@@ -36,10 +39,12 @@ all unique terms in this document along with their term frequencies.
 :param doc_id the document ID of the document the tokens are found in
 :return a dictionary consisting of unique terms and their term frequencies for calculating document length
 """
-def process_tokens(index, tokens, doc_id):
-    term_frequencies = defaultdict(int) # to store document vector and calculate doc_length
 
-    for pos in range(len(tokens)): # pos refers to positional index of a token in the document
+
+def process_tokens(index, tokens, doc_id):
+    term_frequencies = defaultdict(int)  # to store document vector and calculate doc_length
+
+    for pos in range(len(tokens)):  # pos refers to positional index of a token in the document
         token = tokens[pos]
         term_frequencies[token] += 1
 
@@ -54,18 +59,22 @@ def process_tokens(index, tokens, doc_id):
 
         else:
             # if token does not exist in index, create new entry in index
-            index[token] = {doc_id : [pos]}
+            index[token] = {doc_id: [pos]}
 
     return term_frequencies
+
 
 """
 Calculates document length given a list of term frequencies
 """
+
+
 def calculate_doc_length(tfs):
-    sum = 0
+    running_sum = 0
     for tf in tfs:
-        sum += (1 + math.log(tf, 10))**2 # tf is guaranteed to be at least 1
-    return math.sqrt(sum)
+        running_sum += (1 + math.log(tf, 10)) ** 2  # tf is guaranteed to be at least 1
+    return math.sqrt(running_sum)
+
 
 """
 Writes postings and dictionary to disk
@@ -77,10 +86,12 @@ Writes postings and dictionary to disk
 :param out_dict target output file to write dictionary to
 :param out_postings target output file to write postings to
 """
-def write_to_disk(index, doc_lengths, doc_vectors, metadata, out_dict, out_postings):
-    print("writing to disk") # for debugging
 
-    terms = {} # terms to be written to dictionary in disk. key - term, value - (df, pointer)
+
+def write_to_disk(index, doc_lengths, doc_vectors, metadata, out_dict, out_postings):
+    print("writing to disk")  # for debugging
+
+    terms = {}  # terms to be written to dictionary in disk. key - term, value - (df, pointer)
 
     # write postings to disk
     with open(out_postings, 'wb') as postings:
@@ -90,7 +101,7 @@ def write_to_disk(index, doc_lengths, doc_vectors, metadata, out_dict, out_posti
 
             # { docID: positions } converted to tuples and sorted by doc_id
             # then dict reconstructed from it
-            postings_list = dict((k, v) for k, v in sorted(index[token].items(), key=lambda x:x[0]))
+            postings_list = dict((k, v) for k, v in sorted(index[token].items(), key=lambda x: x[0]))
 
             # extract token information such as document frequency and pointer to postings
             df = len(index[token])
