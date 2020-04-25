@@ -16,8 +16,8 @@ def parse_query(query):
     contains a parsed phrase corresponding to a phrasal query or is a list of tokens corresponding to a free text query.
     Multi-word free text queries in an AND query are treated as AND queries on each word.
 
-    @param query the query to be parsed
-    @return a list of lists corresponding to the parsed query, or an empty list if query is an empty string
+    :param query the query to be parsed
+    :return a list of lists corresponding to the parsed query, or an empty list if query is an empty string
     """
     # delimit query by AND
     split_query = [subquery.strip() for subquery in query.split("AND")]
@@ -47,8 +47,8 @@ def parse_multiword_free_text_query(query):
     """
     Parses multiword free text query by tokenising, stemming, and case folding
 
-    @param query the multiword free text query to be parsed
-    @return a list containing individual parsed tokens from the multiword query
+    :param query the multiword free text query to be parsed
+    :return a list containing individual parsed tokens from the multiword query
     """
     tokens = query.split(" ") # split query into individual words
     stemmed_tokens = [stemmer.stem(token.lower()) for token in tokens]
@@ -58,8 +58,8 @@ def parse_phrasal_query(query):
     """
     Parse phrasal query by tokenizing, stemming, rejoining and striping off quotation marks
 
-    @param query the phrasal query to be parsed
-    @return a list containing the parsed phrasal query
+    :param query the phrasal query to be parsed
+    :return a list containing the parsed phrasal query
     """
     query = query.strip('"') # remove quotation marks
     tokens = query.split(" ") # split query into individual words
@@ -74,11 +74,11 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
     If the parsed query list has more than one item, call boolean AND search. If the parsed query list has one item,
     and if the item is a phrase, call phrasal search. Else, call vector space model search.
 
-    @param query a list of lists corresponding to the parsed query to be evaluated
-    @param dictionary the dictionary of Terms saved to disk
-    @param doc_lengths the dictionary of document lengths with doc_id as key and document length as value
-    @param postings_file the file containing postings written in disk
-    @return a list of relevant documents depending on the query
+    :param query a list of lists corresponding to the parsed query to be evaluated
+    :param dictionary the dictionary of Terms saved to disk
+    :param doc_lengths the dictionary of document lengths with doc_id as key and document length as value
+    :param postings_file the file containing postings written in disk
+    :return a list of relevant documents depending on the query
     """
     # check for empty query
     if not query:
@@ -114,10 +114,10 @@ def get_postings(query, dictionary, postings_file):
     """
     Returns postings of each token in the given query
 
-    @param query a list containing query tokens
-    @param dictionary the dictionary of terms saved to disk
-    @param postings_file the file containing postings written in disk
-    @return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
+    :param query a list containing query tokens
+    :param dictionary the dictionary of terms saved to disk
+    :param postings_file the file containing postings written in disk
+    :return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
     value of an inner dictionary with doc_id as key and list of positional indices as value.
     """
     postings = {}
@@ -132,6 +132,33 @@ def get_postings(query, dictionary, postings_file):
                 post.seek(0)  # rewind
 
     return postings
+
+def boolean_search(query, dictionary, postings_file):
+    """
+    Runs boolean search by calling AND merge function on each subquery.
+
+    :param query the query containing a list of subqueries to be AND searched
+    :param dictionary the dictionary of terms saved to disk
+    :param postings_file the file containing postings written in disk
+    :return results list containing result
+    """
+    results = [] # container for results of list intersection
+    for subquery in query:
+        # check if subquery is a phrase
+        if " " in subquery:
+            # run phrasal search after splitting phrasal subquery, returns a list of relevant doc_ids
+            tokenised_phrasal_query = subquery.split(" ")
+            temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file)
+
+        else:
+            # a single word
+            postings = get_postings(subquery, dictionary, postings_file)
+            temp_results = postings[subquery]
+
+        # result is reused in next iteration, merged with next subquery
+        results = and_merge(results, temp_results)
+
+    return results
 
 def VSM_search(query, dictionary, postings_file, doc_lengths):
     # get postings for each token in query if that token exists in dictionary
@@ -154,10 +181,10 @@ def build_query_vector(query, dictionary, N):
     """
     Return normalised tf-idf score for given query in ltc scheme.
 
-    @param query the query from which query vector is to be built
-    @param dictionary the dictionary of terms saved to disk
-    @param N the number of documents in the corpus
-    @return query vector containing dictionary token as key and normalised w_tq of token as value
+    :param query the query from which query vector is to be built
+    :param dictionary the dictionary of terms saved to disk
+    :param N the number of documents in the corpus
+    :return query vector containing dictionary token as key and normalised w_tq of token as value
     """
     query_vector = defaultdict(float) # key: token, value: normalised w_tq of token
 
@@ -187,7 +214,7 @@ def build_query_vector(query, dictionary, N):
 def calculate_cosine_scores(query_vector, postings, doc_lengths):
     """
     Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
-    @return dictionary containing document IDs as key and cosine scores as values
+    :return dictionary containing document IDs as key and cosine scores as values
     """
     scores = {} # key: docID, value: cosine score
 
