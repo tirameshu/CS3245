@@ -158,6 +158,7 @@ def boolean_search(query, dictionary, postings_file):
         # result is reused in next iteration, merged with next subquery
         results = and_merge(results, temp_results)
 
+    # TODO rank results from boolean retrieval based on a VSM search
     return results
 
 def VSM_search(query, dictionary, postings_file, doc_lengths):
@@ -217,12 +218,11 @@ def calculate_cosine_scores(query_vector, postings, doc_lengths):
     :return dictionary containing document IDs as key and cosine scores as values
     """
     scores = {} # key: docID, value: cosine score
-
     for token in postings:
-        for postings_list in token:
-            doc_id = postings_list # the key of the postings_list is the doc_id
+        for doc_id in postings[token]:
             # calculate weighted token frequency
-            tf = len(postings[token][postings_list])
+            tf = len(postings[token][doc_id])
+            print(tf)
             ltf = 1 + math.log(tf, 10)
 
             # update scores
