@@ -355,7 +355,10 @@ def boolean_search(query, dictionary, postings_file, doc_lengths):
             results = temp_results
 
     # rank results
-    ranked_results = rank_boolean_by_tf(query, results, dictionary, postings_file, doc_lengths)
+    if results:
+        ranked_results = rank_boolean_by_tf(query, results, dictionary, postings_file, doc_lengths)
+    else:
+        ranked_results = []
 
     return ranked_results # ranked list of docIDs
 
@@ -435,6 +438,6 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
             results = intermediate_results
 
     if not is_boolean:
-        results = rank_phrasal_by_tf(results, doc_lengths)
+        return rank_phrasal_by_tf(results, doc_lengths)
 
     return list(results.keys())

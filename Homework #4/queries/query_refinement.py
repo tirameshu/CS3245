@@ -15,8 +15,9 @@ def blind_relevance_feedback(top_k, dictionary, postings_file, doc_lengths):
 
 """
 Rocchio
+:param documents: indexed documents { docID: content }
 """
-def rocchio(top_k):
+def rocchio(top_k, dicitionary, postings_file, doc_lengths, documents):
     # index document with { docID: { token: tf.idf } }
     # find centroid with top_k doc
     # 1. sum the tf.idf of each token of all relevant docs
