@@ -74,7 +74,6 @@ assignment.
         by existence in metadata first (specifically, title), followed by date (for every decade later than the
         current year, the relevance drops proportionally), and then court (higher court -> higher weight).
         2.2.1 As the weights are varied within each zone, this is not really weighted-zone score.
-        TODO: proportional for year?
 
 3. Phrasal Search.
     3.1 Query phrase is first tokenised into words, and the posting of each word is found separately.
