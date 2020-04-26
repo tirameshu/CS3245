@@ -7,7 +7,7 @@ from query_refinement import rocchio, expand_query
 from searching_utils import parse_query, evaluate_query, build_query_vector, sort_results_by_metadata
 
 query_expansion_toggle = False  # expand query using Wordnet synonyms for free text queries only
-rocchio_toggle = False  # use Rocchio algorithm for pseudo-relevance feedback
+rocchio_toggle = True  # use Rocchio algorithm for pseudo-relevance feedback
 k = 50  # top k documents from initial set of retrieved results considered 'relevant' for pseudo-relevance feedback
 
 def usage():
