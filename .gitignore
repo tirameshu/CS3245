@@ -4,3 +4,4 @@ postings*
 *.csv
 data*
 dictionary.txt
+numpy*
