@@ -7,36 +7,39 @@ We're using Python Version 3.7.4 for this assignment.
 
 == General Notes about this assignment ==
 
-==== Index ===
-1. We assume that the full path of directory of documents is specified as input argument -i while indexing
+=== Indexing ===
+1. Reading dataset csv file
+    1.1 We assume that the first line of the dataset csv file contains fieldnames.
+    1.2 Any encoding errors encountered while reading unmappable characters are ignored.
 
-2. We index title, content and court as separate dictionaries, as each `in` search is O(1), so searching
-with separate dictionaries is effectively O(1), rather than looping through all docs.
+2. Indexing content of documents
+    2.1 Tokens are collected from the content by `collect_tokens` in `indexing_utils.py`.
+        2.1.1 Only alphanumeric tokens are collected.
+        2.1.2 Tokens are stemmed using Porter Stemmer.
+    2.2 Index is built by `process_tokens` in `indexing_utils.py`.
+        2.2.1 Positional indices of tokens are stored in the index to facilitate phrasal search.
+        2.2.2 Term frequencies of tokens in each document are stored for storing document lengths and document vector.
 
-3. We parse one doc at a time (one row of the csv file at a time), extracting the relevant zones that we intend to store.
-    3.1 `collect_tokens` is first called to tokenise and stem the terms in the document.
-    3.2 `process_tokens` is then called to capture the term_frequency (tf) of each term in the current document,
-        and tf is stored in a separate dictionary `term_frequencies`, in the format of
-        { (str) token: (int) docID: [positions] }
-    3.3 Then we store the information of zones `title` and `court` in separate dictionaries.
+3. Indexing metadata of documents
+    3.1 Title, year, and court of each case is extracted and stored to facilitate zone scoring
 
-4. We then write the index dictionary to disc.
-    4.1 We start by extracting all docIDs and positions of the token in that document, and storing that in the
-        postings.txt.
-    4.2 We then find the corresponding document frequency (df) of each token, and the pointer to its posting.
-        In summary, the storing format is as follows:
-        dictionary.txt: { token: (df, pointer) }
-        postings.txt: { docID: [positions] }
+4. Writing dictionary and postings to disk
+    4.1 Done by `write_to_disk` in `indexing_utils.py`.
+    4.2 Information of the positions a certain token appears in a certain document is written to postings.txt.
+    4.3 Information of the document frequency and pointer to postings list for each token is written to dictionary.txt.
+    4.4 Information of document lengths, a trimmed document vector, and metadata is written to dictionary.txt.
+        4.4.1 The trimmed document vector contains top 100 tokens with highest weighted tf.idf score in each document.
+        This vector will be used for psuedo-relevance feedback using Rocchio algorithm during search.
+    4.5 All data is serialised using Pickle before being written to disk.
 
-5. We initially implemented a Node class to facilitate skip pointers, but it takes up too much space,
-    to the point where indexing resulted in Segmentation Fault. Therefore, we removed it and instead simply stored
-    a dictionary of docID and positions.
+5. We initially implemented a Node class to facilitate skip pointers during boolean AND search. However, serialising
+these custom objects to disk resulted in a segmentation fault. Hence, we chose not to implement skip pointers for the
+assignment.
 
-----------------
+=== Searching ===
 
-=== Search ===
+1. List of key assumptions
 
-Assumption:
 1. Users will query title or body, rather than court or date.
     1.1 However, court and date are important for relevance ranking.
 2. Titles, courts and some dates are in the content, therefore it is safe to
@@ -109,7 +112,12 @@ Assumption:
 
 
 == Work Allocation ==
-Wang Xinman: drafted the structure of implementation, implementation of zones and fields, and phrasal search
+Both contributed more or less equally to the assignment as we discussed and debugged our code together via lengthy zoom
+sessions. However, we primarily worked the following key features:
+A0180257E - Pseudo-relevance feedback using Rocchio algorithm, ranking by metadata, positional intersect algorithm for
+phrasal search, ranked boolean search.
+A0158850X - Query expansion using synonyms from Wordnet, query parsing, free text query search with weighted tf.idf
+vector space model.
 
 == Files included with this submission ==
 
@@ -124,4 +132,19 @@ with others in doing the assignment and did not take notes (digital or
 printed) from the discussions.
 
 == References ==
-Introduction to Information Retrieval Textbook Chapter 6 p3-7 for zone scoring algorithm and understanding,
+1. Introduction to Information Retrieval Textbook Chapter 9 p162-172 for understanding relevance feedback and query
+expansion.
+2. A video on a worked example involving the Rocchio algorithm helped us implement it for query refinement. The video is
+available here: https://www.coursera.org/lecture/text-retrieval/lesson-5-2-feedback-in-vector-space-model-rocchio-PyTkW
+3. The WordNet interface. Available - https://www.nltk.org/howto/wordnet.html
+4. A discussion on ResearchGate for determining a suitable threshold for cosine similarity. We did not directly use any
+implementation discussed here, but this helped us think about more objective ways to determine a threshold.
+Available - https://www.researchgate.net/post/Determination_of_threshold_for_cosine_similarity_score
+5. Stack overflow forums, which we referred for an assortment of doubts and workarounds.
+
+== Acknowledgements ==
+We'd like to thank:
+1. Two friends from SoC who had taken this module in a previous semester, who shared with us their reasoning behind
+their attempt at this assginment. This discussion helped us improve upon their implementation of query expansion.
+2. A friend from law school who told us how she performs legal case retrieval, thus allowing us to refine our
+ranking of results by considering metadata such as title, year, and court.

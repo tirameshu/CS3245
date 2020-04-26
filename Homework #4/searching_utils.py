@@ -2,7 +2,7 @@ from collections import defaultdict
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
 from nltk.stem import PorterStemmer
-from numpy import mean, quantile
+from numpy import mean, quantiles
 
 import math
 import nltk
@@ -354,12 +354,11 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
 
     # determine threshold for relevance by taking average of percentiles of score values
     # average of percentiles gives a threshold between mean and median
-    #
     score_values = [entry[1] for entry in sorted_scores]
-    percentiles = []
-    for i in range(no_of_quantiles):
-        percentiles.append(quantile(score_values, i / no_of_quantiles))
-    threshold_score = mean(percentiles)
+    threshold_score = find_threshold(score_values)
+
+    print(scores[6807771])
+    print(threshold_score)
 
     results = [entry[0] for entry in sorted_scores if entry[1] > threshold_score]
     return results
@@ -373,6 +372,33 @@ Return normalised tf-idf score for given query in ltc scheme.
 :param N the number of documents in the corpus
 :return query vector containing dictionary token as key and normalised w_tq of token as value
 """
+
+def find_threshold(values):
+    medians = []
+    start = 0
+    end = len(values) - 1 # last index
+    interval = end // no_of_quantiles # floor division
+    while (start < end):
+        stop = start + interval
+        medians.append(find_median(values[start:stop]))
+        start = stop
+
+    threshold = sum(medians) / len(medians)
+    return threshold
+
+def find_median(values):
+    """
+    Returns median of list of values. List is sorted in descending order.
+    """
+    n = len(values) # length of list
+    if n % 2 == 0:
+        median1 = values[n//2]
+        median2 = values[n//2 - 1]
+        median = (median1 + median2)/2
+    else:
+        median = values[n//2]
+
+    return median
 
 
 def build_query_vector(query, dictionary, N):
