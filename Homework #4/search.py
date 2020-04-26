@@ -36,7 +36,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
             return
 
         query = query_content[0] # first line in query file is the query
-        print("searching " + query) # for debugging
+        print("searching for : " + query) # for debugging
 
         # evaluate query to obtain results
         parsed_query = parse_query(query)

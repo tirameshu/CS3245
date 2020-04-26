@@ -1,9 +1,18 @@
 from collections import defaultdict
+from nltk.corpus import stopwords
+from nltk.corpus import wordnet as wn
 from nltk.stem import PorterStemmer
+from numpy import mean, quantile
+
 import math
+import nltk
 import pickle
 
+query_expansion_toggle = True # expand query using wordnet synonyms only for free text queries
+
 stemmer = PorterStemmer()
+stop_words = set(stopwords.words('english')) # set stop words to those of English language
+no_of_quantiles = 100  # for determining threshold for cosine scoring - by default, use percentiles
 
 """
 Rank phrasal search by tf of the entire phrase.
@@ -108,10 +117,12 @@ def parse_query(query):
     for subquery in split_query:
         # ignores for empty query
         if not subquery:
+            print("found empty query, returning...") # for debugging
             continue
 
         # check for phrasal query
         if subquery[0] == "\"":
+            print("parsed a phrasal query, evaluating...") # for debugging
             parsed_phrasal_query = parse_phrasal_query(subquery)  # returns a list
             parsed_query.append(parsed_phrasal_query)
         else:  # subquery is either single word free text query or multi-word free text query
@@ -120,21 +131,29 @@ def parse_query(query):
                 parsed_query.append(parsed_multiword_free_text_query)
 
             else:
-                parsed_query.append([stemmer.stem(subquery.lower())])
+                # perform query expansion for single word query (boolean or free text)
+                parsed_query.append([subquery])
 
     return parsed_query
 
 
 def parse_multiword_free_text_query(query):
     """
-    Parses multiword free text query by tokenising, stemming, and case folding
+    Parses multiword free text query by tokenising, stemming, and case folding. Removes stop words from free text query.
+    Performs query expansion using synonyms obtained from wordnet if toggled.
 
     :param query the multiword free text query to be parsed
     :return a list containing individual parsed tokens from the multiword query
     """
     tokens = query.split(" ")  # split query into individual words
-    stemmed_tokens = [stemmer.stem(token.lower()) for token in tokens]
-    return stemmed_tokens
+
+    tokens_without_stopwords = [token for token in tokens if not token in stop_words] # stop word removal
+    # only remove stop words if free text query contains terms other than stopwords
+    # this still allows results for multiword free text search for queries such as 'you are the'
+    if tokens_without_stopwords:
+        tokens = tokens_without_stopwords
+
+    return tokens
 
 
 def parse_phrasal_query(query):
@@ -170,15 +189,25 @@ treated as one-word free text queries and searched using VSM.
 def evaluate_query(query, dictionary, doc_lengths, postings_file):
     # check for empty query
     if not query:
+        print("found empty query, returning...")  # for debugging
         return []
     # check for boolean query
     elif len(query) > 1:
+        print("parsed a boolean query, evaluating...")  # for debugging
+
         # flatten the list of lists into a list of independent queries to be supplied to the boolean AND search function
         flattened_query = [subquery for inner_list in query for subquery in inner_list]
 
+        # stemming and case folding, do not stem the embedded phrasal queries
+        stemmed_query = []
+        for subquery in flattened_query:
+            if " " not in subquery:
+                stemmed_query.append(stemmer.stem(subquery.lower()))
+            else:
+                stemmed_query.append(subquery)
+
         # call boolean search, which will obtain the postings as required
-        results = boolean_search(flattened_query, dictionary, postings_file, doc_lengths)
-        # TODO rank results from boolean search using VSM search on query
+        results = boolean_search(stemmed_query, dictionary, postings_file, doc_lengths)
         return results
 
     else:  # no AND, either phrasal query or free text query
@@ -196,11 +225,32 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
             results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, False)
             return results
 
-        else:  # free text query, run VSM search
+        else:  # free text query, expand query, then run VSM search
+            print("parsed a free text query, evaluating...")  # for debugging
+
             tokenised_free_text_query = query[0]
 
+            tokens = [token.lower() for token in tokenised_free_text_query]  # case folding
+
+            # peform query expansion if needed
+            if query_expansion_toggle:
+                print("expanding free text query...")  # for debugging
+
+                synonyms = expand_query(tokens)  # expand query before all tokens are stemmed
+                synonyms = [token.lower() for token in synonyms]  # wordnet has uppercase tokens, so case fold again
+
+                expanded_query = tokens + synonyms  # concatenate the two lists
+                tokens = expanded_query
+
+            # stem all tokens, return only unique stemmed tokens
+            stemmed_tokens = [stemmer.stem(token) for token in tokens]
+            unique_stemmed_tokens = []
+            for stemmed_token in stemmed_tokens:
+                if stemmed_token not in unique_stemmed_tokens:
+                    unique_stemmed_tokens.append(stemmed_token)
+
             # call VSM search, which will obtain the postings as required
-            results = vsm_search(tokenised_free_text_query, dictionary, postings_file, doc_lengths)
+            results = vsm_search(unique_stemmed_tokens, dictionary, postings_file, doc_lengths)
             return results
 
 
@@ -239,6 +289,9 @@ def get_postings(query, dictionary, postings_file):
 
 
 def vsm_search(query, dictionary, postings_file, doc_lengths):
+    print("running vsm search on tokens : ", end='')
+    print(query)  # for debugging
+
     # get postings for each token in query if that token exists in dictionary
     postings = get_postings(query, dictionary, postings_file)
 
@@ -250,8 +303,15 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
     scores = calculate_cosine_scores(query_vector, postings, doc_lengths)
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)  # sort scores by descending order
 
-    # TODO determine threshold cosine score for relevance, currently set to 0
-    threshold_score = 0
+    # determine threshold for relevance by taking average of percentiles of score values
+    # average of percentiles gives a threshold between mean and median
+    #
+    score_values = [entry[1] for entry in sorted_scores]
+    percentiles = []
+    for i in range(no_of_quantiles):
+        percentiles.append(quantile(score_values, i / no_of_quantiles))
+    threshold_score = mean(percentiles)
+
     results = [entry[0] for entry in sorted_scores if entry[1] > threshold_score]
     return results
 
@@ -357,6 +417,9 @@ Runs boolean search by calling AND merge function on each subquery.
 
 
 def boolean_search(query, dictionary, postings_file, doc_lengths):
+    print("running boolean AND search on tokens : ", end='')
+    print(query)  # for debugging
+
     results = []  # container for results of list intersection
     for i in range(len(query)):
         subquery = query[i]
@@ -367,6 +430,10 @@ def boolean_search(query, dictionary, postings_file, doc_lengths):
             tokenised_phrasal_query = subquery.split(" ")
             # this phrasal search is embedded in a boolean search, thus is_boolean = True
             temp_results = phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, True)
+
+            # if intermediate results are empty, immediately return empty list
+            if not temp_results:
+                return []
 
         else:
             # if any part of the free text query is not in dictionary, return an empty list, since boolean search 
@@ -450,6 +517,9 @@ Handles the case where there is only 1 word in phrase.
 
 
 def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, is_boolean):
+    print("running phrasal search on tokens : ", end='')
+    print(tokenised_phrasal_query)  # for debugging
+
     results = {}  # key - doc_id, value - list of positions in document of the last word in phrase
 
     # retrieve postings of each token in phrasal query
@@ -493,3 +563,27 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
         return rank_phrasal_by_tf(results, doc_lengths)
 
     return list(results.keys())
+
+
+def expand_query(query_tokens):
+    # these query_tokens are case-folded, but not stemmed
+    pos_tagged_tokens = nltk.pos_tag(query_tokens) # tag parts of speech for each token
+
+    # only synonyms for nouns in the given query will be considered
+    # this dictionary is to map nltk's pos_tag method with synsets method
+    accepted_pos = {'NN' : wn.NOUN}
+    filtered_pos_tagged_tokens = [token for token in pos_tagged_tokens if token[1] in accepted_pos] # get list of tuples
+
+    synonyms = []
+    synsets = [wn.synsets(token[0], pos=accepted_pos[token[1]]) for token in filtered_pos_tagged_tokens]
+    for synset in synsets:
+        for lemma in synset:
+            lemma_name = lemma.name() # format - word.pos.index, need to delimit by .
+            split_lemma_name = lemma_name.split(".") # first item in this list is the synonym we want
+            # some synonyms have two or more words delimited by _, just ignore these
+            if "_" not in split_lemma_name[0]:
+                synonym = split_lemma_name[0]
+                synonyms.append(synonym)
+
+    unique_synonyms = list(set(synonyms))
+    return unique_synonyms
