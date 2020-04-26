@@ -6,7 +6,6 @@ import time
 from query_refinement import rocchio
 from searching_utils import parse_query, evaluate_query, build_query_vector, sort_results_by_metadata
 
-
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
 
@@ -38,25 +37,27 @@ def run_search(dict_file, postings_file, queries_file, results_file):
             return
 
         query = query_content[0] # first line in query file is the query
-        print("searching " + query) # for debugging
+        print("searching for : " + query) # for debugging
 
         # evaluate query to obtain results
         parsed_query = parse_query(query)
 
         # returned result will be alr ranked:
-        # free text: ranked by VSM
-        # non-boolean phrase: ranked by tf of phrase
+        # free text: ranked by cosine similarity score between query and set of documents in corpus
+        # stand-alone phrasal query: ranked by tf of phrase
+        # boolean query: ranked by cosine similarity of all tokens in query to set of retrieved documents
 
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
+        print("performed initial round of retrieval.") # for debugging
 
-        print("{n} preliminary results".format(n=len(results)))
-        result_string = " ".join(str(i) for i in results)
-        print("writing prelim results to disk...")  # for debugging
-        result_file.write(result_string + '\n')
+        # TODO query refinement
+        print("commencing query refinement...") # for debugging
 
-        print("re-running with rocchio:")
+        # perform query expansion using synonyms from Wordnet for free text queries only
+        # free text queries are those with only one list in parsed_query list and
+        #if len(parsed_query) == 1 and " " not in parsed_query[0][0]:
 
-        # re-run with rocchio
+        # rocchio
 
         k = 50
         flattened_query = [subquery for inner_list in parsed_query for subquery in inner_list]
