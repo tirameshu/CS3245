@@ -30,7 +30,6 @@ summing their vectors and dividing by k
 :return centroid: centroid of top_k vectors
 """
 def find_centroid(top_k, doc_vectors):
-    print("in centroid")
     k = len(top_k)
     centroid = {}
 
@@ -78,20 +77,20 @@ def rocchio(query_vector, top_k, dictionary, postings_file, doc_lengths, documen
         else:
             new_query_vector[token] = alpha * query_vector[token] + beta * centroid[token]
 
-    print("size of new query vector: {n}".format(n=len(new_query_vector)))
-    print("new query vector:")
-    print(list(new_query_vector.items())[:20])
+    # print("size of new query vector: {n}".format(n=len(new_query_vector)))
+    # print("new query vector:")
+    # print(list(new_query_vector.items())[:20])
 
     postings = get_postings(new_query_vector, dictionary, postings_file) # tf-idf of these terms of all documents
 
-    print("size of postings: {n}".format(n=len(postings)))
+    # print("size of postings: {n}".format(n=len(postings)))
 
     scores = calculate_cosine_scores(new_query_vector, postings, doc_lengths)
 
     sorted_scores = sorted(scores.items(), key=lambda x: x[1]) # x[1] is the score
 
-    print("scores:")
-    print(sorted_scores[:20])
+    # print("scores:")
+    # print(sorted_scores[:20])
 
     return list(map(lambda x: x[0], sorted_scores)) # list of docIDs
 
