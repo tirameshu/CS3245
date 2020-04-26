@@ -83,7 +83,7 @@ Writes postings and dictionary to disk
 
 :param index the index from which postings and dictionary are to be extracted
 :param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
-:param documents dictionary of documents to be written to dictionary file in disk
+:param documents dictionary of top tokens from each document to be written to dictionary file in disk
 :param metadata dictionary of metadata to be written to dictionary file in disk
 :param out_dict target output file to write dictionary to
 :param out_postings target output file to write postings to
@@ -113,9 +113,9 @@ def write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_posting
             print("dumping")
             pickle.dump(postings_list, postings)  # save postings to disk
 
-    # filter tokens in documents to store only the top 100 by tf-idf
+    # filter tokens in documents to store only the top 100 by weighted tf-idf score
     k = 100
-    final_documents = defaultdict(list)
+    trimmed_documents = defaultdict(list)
 
     N = len(documents)
     for docID in documents:
@@ -125,13 +125,14 @@ def write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_posting
         assert(content_vector)
 
         # sorted list of unique tokens in doc
-        sorted_content = sorted(list(content_vector.items()), key=lambda x: x[1], reverse=True) # x[1] = tf.idf, in desc order
+        # x[1] = tf.idf, in desc order
+        sorted_content = sorted(list(content_vector.items()), key=lambda x: x[1], reverse=True)
 
         # assuming some documents do not contains > 100 tokens
         top_k_tokens = filter(lambda x: x[1] >= sorted_content[min(len(sorted_content)-1, k-1)][1], sorted_content)
 
         for token in top_k_tokens:
-            final_documents[docID].append(token)
+            trimmed_documents[docID].append(token)
 
     # write dictionary to disk
     # the pickled dictionary file contains the following data in order - doc_lengths, terms, documents, metadata
@@ -139,5 +140,5 @@ def write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_posting
         print("writing dictionary to disk")  # for debugging
         pickle.dump(doc_lengths, dictionary)
         pickle.dump(terms, dictionary)
-        pickle.dump(final_documents, dictionary)
+        pickle.dump(trimmed_documents, dictionary)
         pickle.dump(metadata, dictionary)

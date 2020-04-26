@@ -29,7 +29,7 @@ def build_index(in_file, out_dict, out_postings):
     index = {}  # key - token, value - dictionary of doc id as key and list of positional indices as value
 
     doc_lengths = {}  # to store doc_lengths, with doc_id as key and doc_length as value
-    documents = {}  # to store doc vectors for pseudo-RF, with doc_id as key and list of tokens as value
+    trimmed_documents = {}  # to store doc vectors for pseudo-RF, with doc_id as key and list of top 100 tokens as value
     metadata = {}  # to store metadata, with doc_id as key and list containing title, year, and court as value
 
     # read and process each row in csv file
@@ -50,7 +50,7 @@ def build_index(in_file, out_dict, out_postings):
             # returns a dictionary of term frequencies to store document vector and to calculate document length
             # document vectors stored in dictionary on disk for pseudo relevance feedback using Rocchio algorithm
             term_frequencies = process_tokens(index, tokens, doc_id)
-            documents[doc_id] = [token for token in term_frequencies]
+            trimmed_documents[doc_id] = [token for token in term_frequencies]
 
             # calculate and store document length
             doc_length = calculate_doc_length([value for value in term_frequencies.values()])
@@ -67,7 +67,7 @@ def build_index(in_file, out_dict, out_postings):
             metadata[doc_id] = [title, year, court]
 
     # write both dictionary and postings to disk
-    write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_postings)
+    write_to_disk(index, doc_lengths, trimmed_documents, metadata, out_dict, out_postings)
 
     print("done indexing")
 

@@ -8,7 +8,6 @@ import math
 import nltk
 import pickle
 
-query_expansion_toggle = True # expand query using wordnet synonyms only for free text queries
 
 stemmer = PorterStemmer()
 stop_words = set(stopwords.words('english')) # set stop words to those of English language
@@ -259,16 +258,6 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
             tokenised_free_text_query = query[0]
 
             tokens = [token.lower() for token in tokenised_free_text_query]  # case folding
-
-            # peform query expansion if needed
-            if query_expansion_toggle:
-                print("expanding free text query...")  # for debugging
-
-                synonyms = expand_query(tokens)  # expand query before all tokens are stemmed
-                synonyms = [token.lower() for token in synonyms]  # wordnet has uppercase tokens, so case fold again
-
-                expanded_query = tokens + synonyms  # concatenate the two lists
-                tokens = expanded_query
 
             # stem all tokens, return only unique stemmed tokens
             stemmed_tokens = [stemmer.stem(token) for token in tokens]
