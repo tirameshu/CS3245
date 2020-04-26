@@ -15,6 +15,34 @@ stop_words = set(stopwords.words('english')) # set stop words to those of Englis
 no_of_quantiles = 100  # for determining threshold for cosine scoring - by default, use percentiles
 
 """
+Sorts docIDs by whether any part of the query is in their title.
+
+:param results: a list of docIDs
+:param first: first metadata field to sort by
+:param second: as above
+:param third: as above
+
+:return sorted docIDs according to param sequence.
+"""
+def sort_results_by_metadata(results, metadata, flattened_query):
+    doc_with_metadata = {} # Python3.7 onwards this preserves insertion order
+
+    for docID in results:
+        if docID not in doc_with_metadata: # prevents duplicate results
+            title, year, court = metadata[docID]
+
+            # if title contains query, give it a 1 and later sort in reverse order
+            query_in_title = 0
+            for query_token in flattened_query:
+
+    doc_with_metadata = list(doc_with_metadata.items())
+    doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
+    doc_with_metadata.sort(key=lambda x: x[1][1]) # then by year
+    doc_with_metadata.sort(key=lambda x: x[1][2]) # then by court
+
+    return list(map(lambda x: x[0], doc_with_metadata)) # list of docIDs
+
+"""
 Rank phrasal search by tf of the entire phrase.
 
 :param intermediate_result: a dictionary of {doc_id: [positions]}, passed from phrasal_search
@@ -320,7 +348,7 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
 Return normalised tf-idf score for given query in ltc scheme.
 
 :param query the query from which query vector is to be built
-:param dictionary the dictionary of terms saved to disk
+:param dictionary the dictionary of terms saved to disk, { token: (df, pointer) }
 :param N the number of documents in the corpus
 :return query vector containing dictionary token as key and normalised w_tq of token as value
 """

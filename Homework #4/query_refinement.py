@@ -1,31 +1,24 @@
 import math
-from searching_utils import get_postings, calculate_cosine_scores
+from searching_utils import get_postings, calculate_cosine_scores, build_query_vector
 
 """
 Create a document vector for allll documents,
 storing each token in a document and their normalised tf-idf weight.
 :param postings_file: postings.txt
 """
-def document_vectors(documents, dictionary, postings_file, doc_lengths):
+def document_vectors(documents, dictionary):
     doc_vectors = {}
+    N = len(documents)
     for docID in documents:
+        print(docID)
         doc_vectors[docID] = {}
         content = documents[docID]
 
-        for token in content:
-            if token in doc_vectors[docID]:
-                continue
-            # calculate weighted token frequency
+        content_vector = build_query_vector(content, dictionary, N)
 
-            posting = get_postings([token], dictionary, postings_file)
-            tf = len(posting[token][docID])
-            ltf = 1 + math.log(tf, 10)
+        doc_vectors[docID] = content_vector
 
-            idf = math.log(1/dictionary[token][0], 10) # lg(1/df)
-            doc_length = doc_lengths[docID]
-
-            # update scores, normalising all scores by dividing by document length for each doc
-            doc_vectors[docID][token] = ltf * idf  / doc_length
+        i += 1
 
     return doc_vectors
 
@@ -38,11 +31,13 @@ summing their vectors and dividing by k
 :return centroid: centroid of top_k vectors
 """
 def find_centroid(top_k, doc_vectors):
+    print("in centroid")
     k = len(top_k)
     centroid = {}
 
     for docID in top_k:
         tokens = doc_vectors[docID]
+
         for token in tokens:
             if token not in centroid:
                 centroid[token] = tokens[token] # normalised tf-idf of token in this doc
@@ -61,7 +56,7 @@ Rocchio, assuming documents have been indexed
 :param top_k: list of top relevant docIDs
 :param documents: indexed documents { docID: content }
 """
-def rocchio(query, top_k, dictionary, postings_file, doc_lengths, documents):
+def rocchio(query_vector, top_k, dictionary, postings_file, doc_lengths, documents):
 
     alpha = 0.2 # magic number 1
     beta = 0.3 # magic number 2
@@ -73,16 +68,16 @@ def rocchio(query, top_k, dictionary, postings_file, doc_lengths, documents):
     # 3. multiply by weight and add to original query
     # 4. Take the new dictionary of { token: value } and run cosine similarity on all docs agn.
 
-    doc_vectors = document_vectors(documents, dictionary, postings_file, doc_lengths)
+    doc_vectors = document_vectors(documents, dictionary)
 
     centroid = find_centroid(top_k, doc_vectors) # { token: tf-idf of token in centroid }
 
     new_query_vector = {}
     for token in centroid:
-        if token not in query: # also need to include tokens not in query, then tf-idf of this token is 0 in q0
+        if token not in query_vector: # also need to include tokens not in query, then tf-idf of this token is 0 in q0
             new_query_vector[token] = beta * centroid[token]
         else:
-            new_query_vector[token] = alpha * query[token] + beta * centroid[token]
+            new_query_vector[token] = alpha * query_vector[token] + beta * centroid[token]
 
     postings = get_postings(new_query_vector, dictionary, postings_file) # tf-idf of these terms of all documents
 

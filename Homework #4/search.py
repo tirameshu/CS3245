@@ -3,7 +3,8 @@ import pickle
 import sys
 import time
 
-from searching_utils import parse_query, evaluate_query, expand_query
+from query_refinement import rocchio
+from searching_utils import parse_query, evaluate_query, build_query_vector, sort_results_by_metadata
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
@@ -22,8 +23,8 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     with open(dict_file, 'rb') as dict:
         # retrieve document lengths and vocabulary
         doc_lengths = pickle.load(dict)
-        dictionary = pickle.load(dict) # contains a list of Term objects
-        doc_vectors = pickle.load(dict)
+        dictionary = pickle.load(dict) # contains a list of
+        documents = pickle.load(dict)
         metadata = pickle.load(dict)
 
     with open(queries_file, 'r') as query_file, open(results_file, 'w') as result_file:
@@ -55,10 +56,24 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # perform query expansion using synonyms from Wordnet for free text queries only
         # free text queries are those with only one list in parsed_query list and
         #if len(parsed_query) == 1 and " " not in parsed_query[0][0]:
-            
-        print("retrieving " + str(len(results)) + " relevant results...") # for debugging
 
-        # TODO order relevant documents by processing metadata
+        # rocchio
+
+        k = 50
+        flattened_query = [subquery for inner_list in parsed_query for subquery in inner_list]
+        # take out individual tokens
+
+        query_vector = build_query_vector(flattened_query, dictionary, len(query))
+
+        results = rocchio(query_vector, results[:k], dictionary, postings_file, doc_lengths, documents)
+
+        print("retrieving " + str(len(results)) + " relevant results") # for debugging
+
+        # order relevant documents by processing metadata
+        # first rank by whether any part of the query is in the title, as this is the least important order
+        # then by date, which are tiered based on how recent it is
+        # lastly by court, as this is the primary/ overall order
+        results = sort_results_by_metadata(results, metadata, flattened_query)
 
         # write results to disk
         result_string = " ".join(str(i) for i in results)

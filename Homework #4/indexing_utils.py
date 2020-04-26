@@ -5,6 +5,8 @@ from nltk.tokenize import word_tokenize
 import math
 import pickle
 
+from searching_utils import build_query_vector
+
 """
 Collects all tokens from a given data string after performing tokenizing, case folding, alphanumeric filtering, and
 stemming.
@@ -81,14 +83,14 @@ Writes postings and dictionary to disk
 
 :param index the index from which postings and dictionary are to be extracted
 :param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
-:param doc_vectors dictionary of doc_vectors to be written to dictionary file in disk
+:param documents dictionary of documents to be written to dictionary file in disk
 :param metadata dictionary of metadata to be written to dictionary file in disk
 :param out_dict target output file to write dictionary to
 :param out_postings target output file to write postings to
 """
 
 
-def write_to_disk(index, doc_lengths, doc_vectors, metadata, out_dict, out_postings):
+def write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_postings):
     print("writing to disk")  # for debugging
 
     terms = {}  # terms to be written to dictionary in disk. key - term, value - (df, pointer)
@@ -111,11 +113,31 @@ def write_to_disk(index, doc_lengths, doc_vectors, metadata, out_dict, out_posti
             print("dumping")
             pickle.dump(postings_list, postings)  # save postings to disk
 
+    # filter tokens in documents to store only the top 100 by tf-idf
+    k = 100
+    final_documents = defaultdict(list)
+
+    N = len(documents)
+    for docID in documents:
+        content = documents[docID]
+        content_vector = build_query_vector(content, terms, N) # { token: tf.idf }
+
+        assert(content_vector)
+
+        # sorted list of unique tokens in doc
+        sorted_content = sorted(list(content_vector.items()), key=lambda x: x[1], reverse=True) # x[1] = tf.idf, in desc order
+
+        # assuming some documents do not contains > 100 tokens
+        top_k_tokens = filter(lambda x: x[1] >= sorted_content[min(len(sorted_content)-1, k-1)][1], sorted_content)
+
+        for token in top_k_tokens:
+            final_documents[docID].append(token)
+
     # write dictionary to disk
-    # the pickled dictionary file contains the following data in order - doc_lengths, terms, doc_vectors, metadata
+    # the pickled dictionary file contains the following data in order - doc_lengths, terms, documents, metadata
     with open(out_dict, 'wb') as dictionary:
         print("writing dictionary to disk")  # for debugging
         pickle.dump(doc_lengths, dictionary)
         pickle.dump(terms, dictionary)
-        pickle.dump(doc_vectors, dictionary)
+        pickle.dump(final_documents, dictionary)
         pickle.dump(metadata, dictionary)
