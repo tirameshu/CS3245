@@ -21,8 +21,6 @@ Builds index by extracting key information from given dataset file.
 :param out_dict target output file to write dictionary to
 :param out_postings target output file to write postings to
 """
-
-
 def build_index(in_file, out_dict, out_postings):
     print('indexing...')
 

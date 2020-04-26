@@ -17,13 +17,11 @@ def usage():
 """
 Runs search by extracting query from query file, evaluating it, and writing the results to result file
 
-:param dict_file the file containing dictionary written in disk
-:param postings_file the file containing postings written in disk
-:param queries_file the file containing the query
-:param results_file the file to write the results to
+:param dict_file: the file containing dictionary written in disk
+:param postings_file: the file containing postings written in disk
+:param queries_file: the file containing the query
+:param results_file: the file to write the results to
 """
-
-
 def run_search(dict_file, postings_file, queries_file, results_file):
     print("searching...")  # for debugging
 
@@ -34,9 +32,6 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         dictionary = pickle.load(dict)  # key - token, value - (document frequency, pointer to postings)
         trimmed_documents = pickle.load(dict)  # key - doc_id, value - list of 100 tokens with highest weighted tf.idf
         metadata = pickle.load(dict)  # key - doc_id, value - [title, year, court]
-
-    # print("size of trimmed documents[0]")
-    # print(str(len(list(trimmed_documents.items())[0][1])))
 
     with open(queries_file, 'r') as query_file, open(results_file, 'w') as result_file:
         query_content = query_file.read().splitlines()
@@ -86,8 +81,6 @@ def run_search(dict_file, postings_file, queries_file, results_file):
             tokens = parsed_query[0]  # 1d array of individual tokens from parsed_query
 
             query_vector = build_query_vector(tokens, dictionary, len(doc_lengths))
-            # print("query vector in search.py")
-            # print(list(query_vector.items())[:20])
 
             results = rocchio(query_vector, results[:k], dictionary, postings_file, doc_lengths, trimmed_documents)
 
@@ -105,12 +98,8 @@ def run_search(dict_file, postings_file, queries_file, results_file):
                 else:
                     flattened_query.append(token)
 
-        # print("preliminary results...")
-        # print(results[:10])
-        #
-        # print("sorting results by metadata...")  # for debugging
+        print("sorting results by metadata...")  # for debugging
         results = sort_results_by_metadata(results, metadata, flattened_query)
-        # print(results[:10])
 
         print("retrieving " + str(len(results)) + " relevant results")  # for debugging
 
