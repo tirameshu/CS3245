@@ -6,8 +6,8 @@ import time
 from query_refinement import rocchio
 from searching_utils import parse_query, evaluate_query, build_query_vector, sort_results_by_metadata, expand_query
 
-query_expansion_toggle = True # expand query using wordnet synonyms for free text queries only
-rocchio_toggle = False # use rocchio algorithm for pseudo-relevance feedback
+query_expansion_toggle = False # expand query using wordnet synonyms for free text queries only
+rocchio_toggle = True # use rocchio algorithm for pseudo-relevance feedback
 k = 50 # top k documents from initial set of retrieved results considered 'relevant' for pseudo-relevance feedback
 
 def usage():
@@ -77,8 +77,11 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # for free text queries only
         if is_free_text_query and rocchio_toggle:
             print("performing pseudo-relevance feedback with the Rocchio algorithm...")  # for debugging
-            tokens = parsed_query[0] # get individual tokens from parsed_query
+            tokens = parsed_query[0] # 1d array of individual tokens from parsed_query
             query_vector = build_query_vector(tokens, dictionary, len(doc_lengths))
+            print("query vector in search.py")
+            print(list(query_vector.items())[:20])
+
             results = rocchio(query_vector, results[:k], dictionary, postings_file, doc_lengths, trimmed_documents)
 
         # order relevant documents by processing metadata

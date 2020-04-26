@@ -83,9 +83,12 @@ def sort_results_by_metadata(results, metadata, query_tokens):
             doc_with_metadata[docID] = [query_in_title, year, court_score]
 
     doc_with_metadata = list(doc_with_metadata.items())
+    print("doc_with_metadata:")
+    print(doc_with_metadata[:20])
+
     doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
-    doc_with_metadata.sort(key=lambda x: x[1][1]) # then by year
-    doc_with_metadata.sort(key=lambda x: x[1][2]) # then by court
+    doc_with_metadata.sort(key=lambda x: x[1][1], reverse=True) # then by year
+    doc_with_metadata.sort(key=lambda x: x[1][2], reverse=True) # then by court
 
     return list(map(lambda x: x[0], doc_with_metadata)) # list of docIDs
 
