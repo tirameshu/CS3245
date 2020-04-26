@@ -24,7 +24,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     with open(dict_file, 'rb') as dict:
         # retrieve document lengths and vocabulary
         doc_lengths = pickle.load(dict)
-        dictionary = pickle.load(dict) # contains a list of Term objects
+        dictionary = pickle.load(dict) # contains a list of
         documents = pickle.load(dict)
         metadata = pickle.load(dict)
 

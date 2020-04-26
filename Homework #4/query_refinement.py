@@ -6,7 +6,7 @@ Create a document vector for allll documents,
 storing each token in a document and their normalised tf-idf weight.
 :param postings_file: postings.txt
 """
-def document_vectors(documents, dictionary, postings_file, doc_lengths):
+def document_vectors(documents, dictionary):
     doc_vectors = {}
     N = len(documents)
     i = 0
@@ -75,7 +75,7 @@ def rocchio(query_vector, top_k, dictionary, postings_file, doc_lengths, documen
     # 3. multiply by weight and add to original query
     # 4. Take the new dictionary of { token: value } and run cosine similarity on all docs agn.
 
-    doc_vectors = document_vectors(documents, dictionary, postings_file, doc_lengths)
+    doc_vectors = document_vectors(documents, dictionary)
 
     centroid = find_centroid(top_k, doc_vectors) # { token: tf-idf of token in centroid }
 
