@@ -3,7 +3,7 @@ import pickle
 import sys
 import time
 
-from searching_utils import parse_query, evaluate_query
+from searching_utils import parse_query, evaluate_query, expand_query
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
@@ -42,12 +42,21 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         parsed_query = parse_query(query)
 
         # returned result will be alr ranked:
-        # free text: ranked by VSM
-        # non-boolean phrase: ranked by tf of phrase
+        # free text: ranked by cosine similarity score between query and set of documents in corpus
+        # stand-alone phrasal query: ranked by tf of phrase
+        # boolean query: ranked by cosine similarity of all tokens in query to set of retrieved documents
 
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
+        print("performed initial round of retrieval.") # for debugging
 
-        print("retrieving " + str(len(results)) + " relevant results") # for debugging
+        # TODO query refinement
+        print("commencing query refinement...") # for debugging
+
+        # perform query expansion using synonyms from Wordnet for free text queries only
+        # free text queries are those with only one list in parsed_query list and
+        #if len(parsed_query) == 1 and " " not in parsed_query[0][0]:
+            
+        print("retrieving " + str(len(results)) + " relevant results...") # for debugging
 
         # TODO order relevant documents by processing metadata
 
