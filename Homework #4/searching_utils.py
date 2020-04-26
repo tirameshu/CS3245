@@ -108,25 +108,6 @@ def rank_boolean_by_tfidf(query_tokens, relevant_doc_ids, dictionary, postings_f
     results = [entry[0] for entry in sorted_scores]
     return results
 
-
-# """
-# :param node: contains doc_id, positional indices, next node, skip node
-# fields and corresponding boolean values
-#
-# :param zone_weights: weights given to each zone to be multiplied with boolean
-# :return zone_score: sum of zone_score for each zone
-# """
-# def get_weighted_zone(node, zone_weights):
-#     """
-#     implementation 1: every zone contains a boolean value
-#
-#     implementation 2: node has attributes "in_metadata" and "in_body",
-#     with boolean values for both, so calculation is only done based on these two.
-#     """
-#     # assuming implementation 2
-#
-#     return node.in_metadata * zone_weights[0] + node.in_body * zone_weights[1]
-
 # METHODS FOR PARSING AND EVALUATING QUERY #
 
 def parse_query(query):
