@@ -117,7 +117,7 @@ sessions. However, we primarily worked the following key features:
 A0180257E - Pseudo-relevance feedback using Rocchio algorithm, ranking by metadata, positional intersect algorithm for
 phrasal search, ranked boolean search.
 A0158850X - Query expansion using synonyms from Wordnet, query parsing, free text query search with weighted tf.idf
-vector space model.
+vector space model, documentation (readme, bonus, code-level).
 
 == Files included with this submission ==
 

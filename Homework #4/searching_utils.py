@@ -1,11 +1,9 @@
 from collections import defaultdict
 from nltk.corpus import stopwords
-from nltk.corpus import wordnet as wn
 from nltk.stem import PorterStemmer
 from numpy import mean, quantiles
 
 import math
-import nltk
 import pickle
 
 
@@ -652,26 +650,3 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
 
     return list(results.keys())
 
-
-def expand_query(query_tokens):
-    # these query_tokens are case-folded, but not stemmed
-    pos_tagged_tokens = nltk.pos_tag(query_tokens) # tag parts of speech for each token
-
-    # only synonyms for nouns in the given query will be considered
-    # this dictionary is to map nltk's pos_tag method with synsets method
-    accepted_pos = {'NN' : wn.NOUN}
-    filtered_pos_tagged_tokens = [token for token in pos_tagged_tokens if token[1] in accepted_pos] # get list of tuples
-
-    synonyms = []
-    synsets = [wn.synsets(token[0], pos=accepted_pos[token[1]]) for token in filtered_pos_tagged_tokens]
-    for synset in synsets:
-        for lemma in synset:
-            lemma_name = lemma.name() # format - word.pos.index, need to delimit by .
-            split_lemma_name = lemma_name.split(".") # first item in this list is the synonym we want
-            # some synonyms have two or more words delimited by _, just ignore these
-            if "_" not in split_lemma_name[0]:
-                synonym = split_lemma_name[0]
-                synonyms.append(synonym)
-
-    unique_synonyms = list(set(synonyms))
-    return unique_synonyms
