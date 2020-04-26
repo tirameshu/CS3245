@@ -79,7 +79,7 @@ def sort_results_by_metadata(results, metadata, query_tokens):
                         # there are mostly no stopwords in free text query,
                         # and for phrasal search we assume all words matter,
                         # and for boolean searches, if stopwords exist, they
-                        query_in_title = +1
+                        query_in_title += 1
 
                 # if court is most impt, give score 2; less impt give score 1, others 0
                 if court in most_impt_courts:
@@ -87,8 +87,11 @@ def sort_results_by_metadata(results, metadata, query_tokens):
                 elif court in less_impt_courts:
                     court_score = 1
 
+                # print("i: {n}".format(n=i))
                 doc_with_metadata[docID] = [query_in_title, year, court_score]
-            elif i >= n:
+                # print(doc_with_metadata)
+
+            else:
                 sorted_by_metadata.append(docID)
 
             if i == n-1: # 100th doc has been processed and added into doc_with_metadata
@@ -100,6 +103,8 @@ def sort_results_by_metadata(results, metadata, query_tokens):
 
                 first_100_sorted_by_metadata = list(map(lambda x: x[0], doc_with_metadata)) # first 100 list of docIDs
                 sorted_by_metadata.extend(first_100_sorted_by_metadata)
+
+            i += 1
 
     return sorted_by_metadata
 
