@@ -4,7 +4,8 @@ import sys
 import time
 
 from query_refinement import rocchio
-from searching_utils import parse_query, evaluate_query
+from searching_utils import parse_query, evaluate_query, build_query_vector
+
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
@@ -24,7 +25,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # retrieve document lengths and vocabulary
         doc_lengths = pickle.load(dict)
         dictionary = pickle.load(dict) # contains a list of Term objects
-        doc_vectors = pickle.load(dict)
+        documents = pickle.load(dict)
         metadata = pickle.load(dict)
 
     with open(queries_file, 'r') as query_file, open(results_file, 'w') as result_file:
@@ -48,12 +49,21 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
 
+        print("{n} preliminary results".format(n=len(results)))
+        result_string = " ".join(str(i) for i in results)
+        print("writing prelim results to disk...")  # for debugging
+        result_file.write(result_string + '\n')
+
+        print("re-running with rocchio:")
+
         # re-run with rocchio
 
         k = 20
         query = [subquery for inner_list in parsed_query for subquery in inner_list]
 
-        results = rocchio(query, results[:k], dictionary, postings_file, doc_lengths, documents)
+        query_vector = build_query_vector(query, dictionary, len(query))
+
+        results = rocchio(query_vector, results[:k], dictionary, postings_file, doc_lengths, documents)
 
         print("retrieving " + str(len(results)) + " relevant results") # for debugging
 

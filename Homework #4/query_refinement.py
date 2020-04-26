@@ -8,7 +8,11 @@ storing each token in a document and their normalised tf-idf weight.
 """
 def document_vectors(documents, dictionary, postings_file, doc_lengths):
     doc_vectors = {}
+    i = 0
     for docID in documents:
+        if i == 4:
+            break
+        print(docID)
         doc_vectors[docID] = {}
         content = documents[docID]
 
@@ -27,6 +31,8 @@ def document_vectors(documents, dictionary, postings_file, doc_lengths):
             # update scores, normalising all scores by dividing by document length for each doc
             doc_vectors[docID][token] = ltf * idf  / doc_length
 
+        i += 1
+
     return doc_vectors
 
 """
@@ -38,19 +44,25 @@ summing their vectors and dividing by k
 :return centroid: centroid of top_k vectors
 """
 def find_centroid(top_k, doc_vectors):
+    print("in centroid")
     k = len(top_k)
     centroid = {}
 
+    n = 0 # for testing only
     for docID in top_k:
+        if docID > 246404: # for testing only
+            continue # for testing only
         tokens = doc_vectors[docID]
+
         for token in tokens:
             if token not in centroid:
                 centroid[token] = tokens[token] # normalised tf-idf of token in this doc
             else:
                 centroid[token] += tokens[token] # add normalised tf-idf of token in this doc
+        n += 1
 
     for token in centroid:
-        centroid[token] /= k
+        centroid[token] /= n
 
     return centroid
 
@@ -61,7 +73,7 @@ Rocchio, assuming documents have been indexed
 :param top_k: list of top relevant docIDs
 :param documents: indexed documents { docID: content }
 """
-def rocchio(query, top_k, dictionary, postings_file, doc_lengths, documents):
+def rocchio(query_vector, top_k, dictionary, postings_file, doc_lengths, documents):
 
     alpha = 0.2 # magic number 1
     beta = 0.3 # magic number 2
@@ -79,10 +91,10 @@ def rocchio(query, top_k, dictionary, postings_file, doc_lengths, documents):
 
     new_query_vector = {}
     for token in centroid:
-        if token not in query: # also need to include tokens not in query, then tf-idf of this token is 0 in q0
+        if token not in query_vector: # also need to include tokens not in query, then tf-idf of this token is 0 in q0
             new_query_vector[token] = beta * centroid[token]
         else:
-            new_query_vector[token] = alpha * query[token] + beta * centroid[token]
+            new_query_vector[token] = alpha * query_vector[token] + beta * centroid[token]
 
     postings = get_postings(new_query_vector, dictionary, postings_file) # tf-idf of these terms of all documents
 
