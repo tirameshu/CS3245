@@ -23,6 +23,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # retrieve document lengths and vocabulary
         doc_lengths = pickle.load(dict)
         dictionary = pickle.load(dict) # contains a list of Term objects
+        doc_vectors = pickle.load(dict)
         metadata = pickle.load(dict)
 
     with open(queries_file, 'r') as query_file, open(results_file, 'w') as result_file:
@@ -30,6 +31,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
         # check for empty query
         if not query_content:
+            print("no query found")  # for debugging
             result_file.write('\n')
             return
 
