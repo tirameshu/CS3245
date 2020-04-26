@@ -3,6 +3,7 @@ import pickle
 import sys
 import time
 
+from query_refinement import rocchio
 from searching_utils import parse_query, evaluate_query
 
 def usage():
@@ -44,6 +45,13 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # non-boolean phrase: ranked by tf of phrase
 
         results = evaluate_query(parsed_query, dictionary, doc_lengths, postings_file)
+
+        # re-run with rocchio
+
+        k = 20
+        query = [subquery for inner_list in parsed_query for subquery in inner_list]
+
+        results = rocchio(query, results[:k], dictionary, postings_file, doc_lengths, documents)
 
         print("retrieving " + str(len(results)) + " relevant results") # for debugging
 
