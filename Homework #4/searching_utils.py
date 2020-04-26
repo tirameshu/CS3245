@@ -63,9 +63,12 @@ def sort_results_by_metadata(results, metadata, query_tokens):
     sorted_by_metadata = []
 
     i = 0
+
+    n = math.floor(len(results) / 10)
+
     for docID in results:
         if docID not in doc_with_metadata: # prevents duplicate results
-            if i < 100: # only sort for the first 100 docs
+            if i < n: # only sort for the first 100 docs
                 title, year, court = metadata[docID]
                 query_in_title = 0
                 court_score = 0
@@ -85,13 +88,11 @@ def sort_results_by_metadata(results, metadata, query_tokens):
                     court_score = 1
 
                 doc_with_metadata[docID] = [query_in_title, year, court_score]
-            elif i >= 100:
+            elif i >= n:
                 sorted_by_metadata.append(docID)
 
-            if i == 99: # 100th doc has been processed and added into doc_with_metadata
+            if i == n-1: # 100th doc has been processed and added into doc_with_metadata
                 doc_with_metadata = list(doc_with_metadata.items()) # for 100 docs
-                print("doc_with_metadata:")
-                print(doc_with_metadata[:20])
 
                 doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
                 doc_with_metadata.sort(key=lambda x: x[1][1], reverse=True) # then by year
@@ -398,8 +399,6 @@ def build_query_vector(query, dictionary, N):
     for token in query_vector:
         # get df
 
-        if token not in dictionary:
-            print("token {token} not in dictionary!".format(token=token))
         df = dictionary[token][0] if token in dictionary else 0
 
         # calculate idf
