@@ -60,37 +60,48 @@ def sort_results_by_metadata(results, metadata, query_tokens):
 
     doc_with_metadata = {} # Python3.7 onwards this preserves insertion order
 
+    sorted_by_metadata = []
+
+    i = 0
+
+    n = math.floor(len(results) / 10)
+
     for docID in results:
         if docID not in doc_with_metadata: # prevents duplicate results
-            title, year, court = metadata[docID]
-            query_in_title = 0
-            court_score = 0
+            if i < n: # only sort for the first 100 docs
+                title, year, court = metadata[docID]
+                query_in_title = 0
+                court_score = 0
 
-            # if title contains query, give it a 1 and later sort in reverse order
-            for token in query_tokens:
-                if token in title:
-                    # there are mostly no stopwords in free text query,
-                    # and for phrasal search we assume all words matter,
-                    # and for boolean searches, if stopwords exist, they
-                    query_in_title = +1
+                # if title contains query, give it a 1 and later sort in reverse order
+                for token in query_tokens:
+                    if token in title:
+                        # there are mostly no stopwords in free text query,
+                        # and for phrasal search we assume all words matter,
+                        # and for boolean searches, if stopwords exist, they
+                        query_in_title = +1
 
-            # if court is most impt, give score 2; less impt give score 1, others 0
-            if court in most_impt_courts:
-                court_score = 2
-            elif court in less_impt_courts:
-                court_score = 1
+                # if court is most impt, give score 2; less impt give score 1, others 0
+                if court in most_impt_courts:
+                    court_score = 2
+                elif court in less_impt_courts:
+                    court_score = 1
 
-            doc_with_metadata[docID] = [query_in_title, year, court_score]
+                doc_with_metadata[docID] = [query_in_title, year, court_score]
+            elif i >= n:
+                sorted_by_metadata.append(docID)
 
-    doc_with_metadata = list(doc_with_metadata.items())
-    print("doc_with_metadata:")
-    print(doc_with_metadata[:20])
+            if i == n-1: # 100th doc has been processed and added into doc_with_metadata
+                doc_with_metadata = list(doc_with_metadata.items()) # for 100 docs
 
-    doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
-    doc_with_metadata.sort(key=lambda x: x[1][1], reverse=True) # then by year
-    doc_with_metadata.sort(key=lambda x: x[1][2], reverse=True) # then by court
+                doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
+                doc_with_metadata.sort(key=lambda x: x[1][1], reverse=True) # then by year
+                doc_with_metadata.sort(key=lambda x: x[1][2], reverse=True) # then by court
 
-    return list(map(lambda x: x[0], doc_with_metadata)) # list of docIDs
+                first_100_sorted_by_metadata = list(map(lambda x: x[0], doc_with_metadata)) # first 100 list of docIDs
+                sorted_by_metadata.extend(first_100_sorted_by_metadata)
+
+    return sorted_by_metadata
 
 """
 Rank phrasal search by tf of the entire phrase.
@@ -346,6 +357,7 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
 
     # build query_vector with key: token, value: normalised w_tq of token
     N = len(doc_lengths)  # N is the total number of documents in the corpus
+
     query_vector = build_query_vector(query, dictionary, N)
 
     # calculate scores with key: doc_id, value: cosine score of document corresponding to doc_id
@@ -412,6 +424,7 @@ def build_query_vector(query, dictionary, N):
     w_tq_running_total = 0  # for calculating query length
     for token in query_vector:
         # get df
+
         df = dictionary[token][0] if token in dictionary else 0
 
         # calculate idf

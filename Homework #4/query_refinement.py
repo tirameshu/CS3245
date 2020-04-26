@@ -2,20 +2,19 @@ import math
 from searching_utils import get_postings, calculate_cosine_scores, build_query_vector
 
 """
-Create a document vector for allll documents,
-storing each token in a document and their normalised tf-idf weight.
-:param postings_file: postings.txt
+Extracting tokens and their associated tf-idf weights
+from trimmed_documents, stored in dictionary.txt.
+
+:param documents: { docID: [ (token: tf.idf) ] }
 """
-def document_vectors(documents, dictionary):
+def document_vectors(documents):
     doc_vectors = {}
-    N = len(documents)
     for docID in documents:
         doc_vectors[docID] = {}
-        content = documents[docID]
+        content = documents[docID] # {term: tf.idf}
 
-        content_vector = build_query_vector(content, dictionary, N)
-
-        doc_vectors[docID] = content_vector
+        for token, tfidf in content:
+            doc_vectors[docID][token] = tfidf
 
     return doc_vectors
 
@@ -65,7 +64,7 @@ def rocchio(query_vector, top_k, dictionary, postings_file, doc_lengths, documen
     # 3. multiply by weight and add to original query
     # 4. Take the new dictionary of { token: value } and run cosine similarity on all docs agn.
 
-    doc_vectors = document_vectors(documents, dictionary)
+    doc_vectors = document_vectors(documents)
 
     centroid = find_centroid(top_k, doc_vectors) # { token: tf-idf of token in centroid }
 
