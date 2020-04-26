@@ -9,10 +9,7 @@ storing each token in a document and their normalised tf-idf weight.
 def document_vectors(documents, dictionary):
     doc_vectors = {}
     N = len(documents)
-    i = 0
     for docID in documents:
-        if i == 4:
-            break
         print(docID)
         doc_vectors[docID] = {}
         content = documents[docID]
@@ -38,10 +35,7 @@ def find_centroid(top_k, doc_vectors):
     k = len(top_k)
     centroid = {}
 
-    n = 0 # for testing only
     for docID in top_k:
-        if docID > 246404: # for testing only
-            continue # for testing only
         tokens = doc_vectors[docID]
 
         for token in tokens:
@@ -49,10 +43,9 @@ def find_centroid(top_k, doc_vectors):
                 centroid[token] = tokens[token] # normalised tf-idf of token in this doc
             else:
                 centroid[token] += tokens[token] # add normalised tf-idf of token in this doc
-        n += 1
 
     for token in centroid:
-        centroid[token] /= n
+        centroid[token] /= k
 
     return centroid
 

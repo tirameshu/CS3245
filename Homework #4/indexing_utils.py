@@ -123,10 +123,12 @@ def write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_posting
         content_vector = build_query_vector(content, terms, N) # { token: tf.idf }
 
         assert(content_vector)
+
+        # sorted list of unique tokens in doc
         sorted_content = sorted(list(content_vector.items()), key=lambda x: x[1], reverse=True) # x[1] = tf.idf, in desc order
 
-        # each document definitely contains > 100 tokens
-        top_k_tokens = filter(lambda x: x[1] >= sorted_content[k-1][1], sorted_content)
+        # assuming some documents do not contains > 100 tokens
+        top_k_tokens = filter(lambda x: x[1] >= sorted_content[min(len(sorted_content)-1, k-1)][1], sorted_content)
 
         for token in top_k_tokens:
             final_documents[docID].append(token)

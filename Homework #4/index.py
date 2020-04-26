@@ -30,7 +30,7 @@ def build_index(in_file, out_dict, out_postings):
 
     doc_lengths = {}  # to store doc_lengths, with doc_id as key and doc_length as value
     documents = {}  # to store doc vectors for pseudo-RF, with doc_id as key and list of tokens as value
-    metadata = {}  # to store metadata, with doc_id as key and list containing title, date, and court as value
+    metadata = {}  # to store metadata, with doc_id as key and list containing title, year, and court as value
 
     # read and process each row in csv file
     with open(in_file, 'r', errors='ignore') as csvfile:
@@ -58,9 +58,13 @@ def build_index(in_file, out_dict, out_postings):
 
             # store metadata
             title = row["title"]  # extract case title
+
+            # assumes that date for all documents are in the format of [year] [time]
             date = row["date_posted"].split(" ")[0]  # extract date posted (ignore time)
+            year = int(date.split("-")[0])
+
             court = row["court"]  # extract court
-            metadata[doc_id] = [title, date, court]
+            metadata[doc_id] = [title, year, court]
 
     # write both dictionary and postings to disk
     write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_postings)
