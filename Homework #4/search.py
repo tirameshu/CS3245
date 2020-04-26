@@ -3,15 +3,16 @@ import pickle
 import sys
 import time
 
-from query_refinement import rocchio
-from searching_utils import parse_query, evaluate_query, build_query_vector, sort_results_by_metadata, expand_query
+from query_refinement import rocchio, expand_query
+from searching_utils import parse_query, evaluate_query, build_query_vector, sort_results_by_metadata
 
-query_expansion_toggle = False # expand query using wordnet synonyms for free text queries only
-rocchio_toggle = False # use rocchio algorithm for pseudo-relevance feedback
-k = 50 # top k documents from initial set of retrieved results considered 'relevant' for pseudo-relevance feedback
+query_expansion_toggle = False  # expand query using Wordnet synonyms for free text queries only
+rocchio_toggle = True  # use Rocchio algorithm for pseudo-relevance feedback
+k = 50  # top k documents from initial set of retrieved results considered 'relevant' for pseudo-relevance feedback
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
+
 
 """
 Runs search by extracting query from query file, evaluating it, and writing the results to result file
@@ -21,16 +22,18 @@ Runs search by extracting query from query file, evaluating it, and writing the 
 :param queries_file the file containing the query
 :param results_file the file to write the results to
 """
+
+
 def run_search(dict_file, postings_file, queries_file, results_file):
-    print("searching...") # for debugging
+    print("searching...")  # for debugging
 
     # load contents from dictionary saved to disk
     with open(dict_file, 'rb') as dict:
         # retrieve document lengths and vocabulary
-        doc_lengths = pickle.load(dict) # key - doc_id, value - doc_length
-        dictionary = pickle.load(dict) # key - token, value - (document frequency, pointer to postings)
-        trimmed_documents = pickle.load(dict) # key - doc_id, value - list of 100 tokens with highest weighted tf.idf
-        metadata = pickle.load(dict) # key - doc_id, value - [title, year, court]
+        doc_lengths = pickle.load(dict)  # key - doc_id, value - doc_length
+        dictionary = pickle.load(dict)  # key - token, value - (document frequency, pointer to postings)
+        trimmed_documents = pickle.load(dict)  # key - doc_id, value - list of 100 tokens with highest weighted tf.idf
+        metadata = pickle.load(dict)  # key - doc_id, value - [title, year, court]
 
     # print("size of trimmed documents[0]")
     # print(str(len(list(trimmed_documents.items())[0][1])))
@@ -44,8 +47,8 @@ def run_search(dict_file, postings_file, queries_file, results_file):
             result_file.write('\n')
             return
 
-        query = query_content[0] # first line in query file is the query
-        print("searching for : " + query) # for debugging
+        query = query_content[0]  # first line in query file is the query
+        print("searching for : " + query)  # for debugging
 
         # parse and evaluate query to obtain results
         parsed_query = parse_query(query)
@@ -80,7 +83,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         # for free text queries only
         if is_free_text_query and rocchio_toggle:
             print("performing pseudo-relevance feedback with the Rocchio algorithm...")  # for debugging
-            tokens = parsed_query[0] # 1d array of individual tokens from parsed_query
+            tokens = parsed_query[0]  # 1d array of individual tokens from parsed_query
 
             query_vector = build_query_vector(tokens, dictionary, len(doc_lengths))
             # print("query vector in search.py")
@@ -95,7 +98,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         flattened_query = []
         for subquery in parsed_query:
             for token in subquery:
-                if " " in token: # for phrases
+                if " " in token:  # for phrases
                     split_phrase = token.split(" ")
                     for word in split_phrase:
                         flattened_query.append(word)
@@ -109,12 +112,13 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         results = sort_results_by_metadata(results, metadata, flattened_query)
         # print(results[:10])
 
-        print("retrieving " + str(len(results)) + " relevant results") # for debugging
+        print("retrieving " + str(len(results)) + " relevant results")  # for debugging
 
         # write results to disk
         result_string = " ".join(str(i) for i in results)
-        print("writing results to disk...") # for debugging
+        print("writing results to disk...")  # for debugging
         result_file.write(result_string + '\n')
+
 
 dictionary_file = postings_file = query_file = output_file_of_results = None
 
@@ -126,7 +130,7 @@ except getopt.GetoptError:
 
 for o, a in opts:
     if o == '-d':
-        dictionary_file  = a
+        dictionary_file = a
     elif o == '-p':
         postings_file = a
     elif o == '-q':
@@ -136,7 +140,7 @@ for o, a in opts:
     else:
         assert False, "unhandled option"
 
-if dictionary_file == None or postings_file == None or query_file == None or output_file_of_results == None :
+if dictionary_file == None or postings_file == None or query_file == None or output_file_of_results == None:
     usage()
     sys.exit(2)
 
