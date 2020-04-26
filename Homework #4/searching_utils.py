@@ -1,7 +1,6 @@
 from collections import defaultdict
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-from numpy import mean, quantiles
 
 import math
 import pickle
