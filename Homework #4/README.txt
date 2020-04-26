@@ -38,78 +38,91 @@ assignment.
 
 === Searching ===
 
-1. List of key assumptions
+1. Assumptions on entry of query by user
+    1.1 Users will query title or content of a case, rather than court or date.
+        1.1.1 Based on a preliminary lookup of dataset.csv, titles are included in the content. Hence, we assume this is
+        true for the whole dataset and search only the content. However, we use metadata such as title, court, and year
+        to re-rank the top decile of documents retrieved.
+    1.2 User will enter queries in the appropriate format. However, the following provisions are made for improper query
+    entry:
+        1.2.1 If user enters a phrase beginning but not ending with quotation marks, e.g. ``"fertility treatment`, it is
+        treated as a phrase.
+        1.2.2 If user enters a mixture of phrasal and free text query,
+            1.2.2.1 If the phrase appears first, e.g. ``"cat dog" lion`, then the whole query is treated as a phrasal
+            query.
+            1.2.2.2 If the free text appears first, e.g. `lion "cat dog"`, then a free text search is run with tokens
+            `lion`, ``"cat`, and `dog"`, which may return undesirable results.
+        1.2.3 If user enters a multi-word free text query in a boolean AND query, e.g. `cat dog AND lion`, then the
+        query is treated as `cat AND dog AND lion`. Here, we run a boolean AND query on each token because we assume
+        that since a user has opted for boolean AND search, they desire exact matches.
+        1.2.4 If the user enters an incomplete boolean query, e.g. `cat AND `, we run a boolean search on the complete
+        terms in the query i.e. on `cat`.
 
-1. Users will query title or body, rather than court or date.
-    1.1 However, court and date are important for relevance ranking.
-2. Titles, courts and some dates are in the content, therefore it is safe to
-    search through content first, then check if any of the docs (alr deemed relevant
-    based on cosine similarity) has query in its title.
-    2.1 Takes care of situations where say a date appears multiple times in one case but is
-        the actual publishing date of another case.
-3. User will enter phrasal queries appropriately, ie a phrase enclosed on both ends with quotation marks.
-    3.1 As such, as long as a query begins with a quotation mark, we will treat the subquery as a phrase.
-4. "Correction" for user mistake
-    4.1 If the query is `cat AND `, we take it as that the user has made a mistake, and that at least the
-        first term is still relevant to what the user is searching for, thus still returning relevant documents
-        based on that.
+2. Query parsing
+    2.1 Query is first delimited by `"AND"`.
+    2.2 Phrases in the delimited query (entries containing " ") are tokenised, stemmed, and rejoined.
+        2.2.1 For example, the phrase ``"fertility treatment"` is parsed as `"fertil treatment"`.
+        2.2.2 Such parsing is consistent with the stemming performed during indexing, which ensures that the phrasal
+        search is accurate.
+        2.2.3 If the whole phrase was stemmed together, `"fertility treat"` would be obtained, which would result in
+        imprecise retrieval.
+    2.3 For multi-word free text queries, stop words are removed if the query contains at least one non-stopword.
+        2.3.1 For instance, for the query `"the quiet phone call"`, "the" is removed, as the other words are not stop
+        words.
+        2.3.2 However, the query `"you are the"` is processed without stop word removal as we assume that returning no
+        results is worse than returning results by running the supplied query as is.
 
-1. Query Processing.
-    1.1 For every search, delimit with AND op, and first retrieve for each query term separately.
-        1.1.1 If there's no AND (ie result of delimitation is of length 1)
-            1.1.1.1 If there is quotation mark, then it's phrasal search.
-            1.1.1.2 Else, free text search. Conduct normal tf-idf scoring,
-                    to be summed with weighted zone scoring, calculated for each individual query term.
-        1.1.2 Else
-            1.1.2.1 Call the first search function on the two components.
-            1.1.2.2 If the result of delimitation involves quotation marks, means the query involves a phrase.
-                    Then conduct phrasal search, involving zones and fields.
-            1.1.2.3 Else, free text search as above.
+3. Free text query search
+    3.1 Implemented using the vector space model, where cosine similarity between query vector and document vector is
+    determine using the lnc.ltc ranking scheme to rank relevant documents.
+    3.2 Only documents with a cosine similarity score above a certain threshold are retrieved as relevant.
+        3.2.2 This threshold is determined by finding the median for each percentile of the document scores in the
+        vector space, and then averaging these median values.
+        3.2.1 This threshold uses a less subjective statistical measure that yields a value that lies between the mean
+        and the median of the document scores. The mean is not used as threshold as we found that it dramatically
+        reduces recall, which we thought could reduce precision, while the median halves the recall without affecting
+        precision too much.
+        3.2.2 Hence, this method of finding the threshold seeks an intuitive balance between precision and recall.
 
-2. Zones and Fields.
-    2.1 We will search through the content of the document first, then sort the resulting documents
-        by their metadata.
+4. Phrasal search
+    4.1 Implemented using the positional intersect algorithm. Even though the phrasal queries are 2-3 words long, this
+    algorithm works for n-word phrases.
+    4.2 To improve speedup, we return an empty list whenever the intermediate results are empty.
+    4.3 Unfortunately, we cannot guarantee that the documents returned have exact matches with the phrasal query,
+        as the terms are stemmed during indexing.
+    4.4 The relevant documents retrieved are further ranked based on the weighted term frequency of the phrase in each
+    document.
 
-    2.2 To facilitate searches specific to any of the metadata, especially `title`, we will rank the documents
-        by existence in metadata first (specifically, title), followed by date (for every decade later than the
-        current year, the relevance drops proportionally), and then court (higher court -> higher weight).
-        2.2.1 As the weights are varied within each zone, this is not really weighted-zone score.
-        TODO: proportional for year?
+5. Boolean search
+    4.1 Implemented using the AND intersection algorithm. As we did not use skip pointers, we simply leverage on
+    Python's `Set` collection to perform the list merging.
+    4.2 To improve speedup, we return an empty list whenever the intermediate results are empty.
+    4.3 For boolean queries with phrases, phrasal search is conducted on the phrase as previously explained, and the
+    result is merged with postings of the other tokens in the query.
+    4.4 The relevant documents retrieved are further ranked based on cosine similarity between query and document.
+        4.4.1 Here, the query is a free text query consisting of individual tokens from the original query (any phrases
+        are tokenised into words too). This is to differentiate documents based on tf.idf scores of the queried terms,
+        assuming that a document which sees a higher frequency of even just one of the terms is more relevant.
 
-3. Phrasal Search.
-    3.1 Query phrase is first tokenised into words, and the posting of each word is found separately.
-
-    3.2 Then find intersection of the postings based on the docIDs, same as boolean search.
-        3.2.1 However, the list of positions for each query term is kept separate.
-        3.2.2. The lists of positions should be ordered according to the order of the words in the phrase.
-
-    3.3 Loop through the nodes in the resultant list, and check whether the positions of the words in the phrase
-        are in the desired order.
-        3.3.1 Also note the number of times the phrase appeared in the document and use the same df formula for it,
-                while also normalising by document length.
-
-    3.4 Potential edge cases:
-        3.4.1. Repeated words, eg "one by one", "so so"
-
-    3.5 Unfortunately we cannot guarantee that the documents returned have exact matches with the phrasal query,
-        as the terms are stemmed.
-
-4. Boolean Query
-    4.1 Every component of a boolean query is interpreted as joined by AND, eg cat mouse AND dog == cat AND mouse AND dog,
-        thus the posting for each term in the query is found and intersected.
-    4.2 For boolean queries with phrases, phrasal query is conducted on the phrase, and resulting posting list is
-        similarly intersected with the other parts of the boolean query.
-    4.3 Ranking of the intersected documents is determined by cosine similarity between query and document, where
-        the query now is taken to be free text. This is to differentiate documents based on frequencies
-        of the queried terms, assuming that a document which sees a higher frequency of even just one of the terms
-        is more likely to be relevant.
-
-5. Ranking
-    5.1 For boolean queries, we are ranking the results by scoring documents based on the tf of the tokens in the query
-        in the documents, then normalising by document length.
-        5.1.1 We are not using log as it is an increasing function anyway, so a document with a higher absolute tf
-              for a token will also have a higher log value.
-
+6. Query refinement
+    6.1 We explored two query refinement techniques - pseudo-relevance feedback using Rocchio algorithm an query
+    expansion using synonyms from Wordnet. These techniques are further discussed in BONUS.docx.
+    6.2 Both query refinement techniques were only attempted for free text queries, as we assumed that the user would
+    appreciate documents with exact matches if they were using the phrasal or boolean search feature.
+    6.3 The Rocchio algorithm was implemented as follows:
+        6.3.1 Trimmed document vectors consisting of top 100 tokens with highest tf.idf scores for each document were
+        saved to disk during indexing.
+        6.3.2 The original query was shifted using the centroid of the documents retrieved after the initial round of
+        retrieval. Alpha = 1 and Beta = 0.75, based on a heuristic found on the Stanford NLP guide.
+        6.3.3 Cosine similarity scores were calculated between the new query and the trimmed document vectors.
+        6.3.4 The resulting list is sorted by cosine scores and returned as the updated list of relevant documents.
+    6.4 Query expansion was implemented as follows:
+        6.4.1 Synonyms that are nouns for each noun in the free text query were added to the original query by
+        retrieving the appropriate synonym sets and parts of speech tags.
+        6.4.2 The expanded query was evaluated as per usual as a free text query search.
+    6.5 After testing both refinement techniques, we decided to toggle them off because they yielded unreliable results.
+    We would require more expert relevance assessments and further refinement of these techniques before we can be
+    confident of toggling them on.
 
 == Work Allocation ==
 Both contributed more or less equally to the assignment as we discussed and debugged our code together via lengthy zoom
@@ -140,7 +153,9 @@ available here: https://www.coursera.org/lecture/text-retrieval/lesson-5-2-feedb
 4. A discussion on ResearchGate for determining a suitable threshold for cosine similarity. We did not directly use any
 implementation discussed here, but this helped us think about more objective ways to determine a threshold.
 Available - https://www.researchgate.net/post/Determination_of_threshold_for_cosine_similarity_score
-5. Stack overflow forums, which we referred for an assortment of doubts and workarounds.
+5. The Stanford NLP guide for determining alpha and beta weight values for implementing the Rocchio algorithm.
+Available - https://nlp.stanford.edu/IR-book/html/htmledition/the-rocchio71-algorithm-1.html
+6. Stack overflow forums, which we referred for an assortment of doubts and workarounds.
 
 == Acknowledgements ==
 We'd like to thank:

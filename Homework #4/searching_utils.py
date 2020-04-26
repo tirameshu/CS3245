@@ -5,10 +5,10 @@ from nltk.stem import PorterStemmer
 import math
 import pickle
 
-
 stemmer = PorterStemmer()
-stop_words = set(stopwords.words('english')) # set stop words to those of English language
+stop_words = set(stopwords.words('english'))  # set stop words to those of English language
 no_of_quantiles = 100  # for determining threshold for cosine scoring - by default, use percentiles
+
 
 def get_courts():
     most_impt_courts = []
@@ -42,6 +42,7 @@ def get_courts():
 
     return most_impt_courts, less_impt_courts
 
+
 """
 Sorts docIDs by whether any part of the query is in their title.
 
@@ -52,10 +53,12 @@ Sorts docIDs by whether any part of the query is in their title.
 
 :return sorted docIDs according to param sequence.
 """
+
+
 def sort_results_by_metadata(results, metadata, query_tokens):
     most_impt_courts, less_impt_courts = get_courts()
 
-    doc_with_metadata = {} # Python3.7 onwards this preserves insertion order
+    doc_with_metadata = {}  # Python3.7 onwards this preserves insertion order
 
     sorted_by_metadata = []
 
@@ -64,8 +67,8 @@ def sort_results_by_metadata(results, metadata, query_tokens):
     n = math.floor(len(results) / 10)
 
     for docID in results:
-        if docID not in doc_with_metadata: # prevents duplicate results
-            if i < n: # only sort for the first 100 docs
+        if docID not in doc_with_metadata:  # prevents duplicate results
+            if i < n:  # only sort for the first 100 docs
                 title, year, court = metadata[docID]
                 query_in_title = 0
                 court_score = 0
@@ -91,19 +94,20 @@ def sort_results_by_metadata(results, metadata, query_tokens):
             else:
                 sorted_by_metadata.append(docID)
 
-            if i == n-1: # 100th doc has been processed and added into doc_with_metadata
-                doc_with_metadata = list(doc_with_metadata.items()) # for 100 docs
+            if i == n - 1:  # 100th doc has been processed and added into doc_with_metadata
+                doc_with_metadata = list(doc_with_metadata.items())  # for 100 docs
 
-                doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
-                doc_with_metadata.sort(key=lambda x: x[1][1], reverse=True) # then by year
-                doc_with_metadata.sort(key=lambda x: x[1][2], reverse=True) # then by court
+                doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True)  # first by title
+                doc_with_metadata.sort(key=lambda x: x[1][1], reverse=True)  # then by year
+                doc_with_metadata.sort(key=lambda x: x[1][2], reverse=True)  # then by court
 
-                first_100_sorted_by_metadata = list(map(lambda x: x[0], doc_with_metadata)) # first 100 list of docIDs
+                first_100_sorted_by_metadata = list(map(lambda x: x[0], doc_with_metadata))  # first 100 list of docIDs
                 sorted_by_metadata.extend(first_100_sorted_by_metadata)
 
             i += 1
 
     return sorted_by_metadata
+
 
 """
 Rank phrasal search by tf of the entire phrase.
@@ -138,10 +142,10 @@ def rank_boolean_by_tfidf(query_tokens, relevant_doc_ids, dictionary, postings_f
 
     # first, get all postings for all query tokens
     temp_postings = get_postings(query_tokens, dictionary, postings_file)
-    
+
     # filter only those doc_ids in postings of each token that appear in relevant_doc_ids
     for token in query_tokens:
-        if token not in dictionary: # just to bulletproof code, calling method has already ensured this does not happen
+        if token not in dictionary:  # just to bulletproof code, calling method has already ensured this does not happen
             continue
 
         postings_list = temp_postings[token]
@@ -152,7 +156,7 @@ def rank_boolean_by_tfidf(query_tokens, relevant_doc_ids, dictionary, postings_f
                 if token in filtered_postings:
                     filtered_postings[token][doc_id] = positions
                 else:
-                    filtered_postings[token] = {doc_id : positions}
+                    filtered_postings[token] = {doc_id: positions}
 
     # calculate cosine scores, using algorithms used for vsm search, but on a smaller search space of relevant_doc_ids
     # build query_vector with key: token, value: normalised w_tq of token
@@ -165,19 +169,22 @@ def rank_boolean_by_tfidf(query_tokens, relevant_doc_ids, dictionary, postings_f
     results = [entry[0] for entry in sorted_scores]
     return results
 
+
 # METHODS FOR PARSING AND EVALUATING QUERY #
 
+"""
+Parses the query and returns a list of lists corresponding to the parsed query.
+
+The number of items in the outer list correspond to the number of queries separated by AND. The inner list either
+contains a parsed phrase corresponding to a phrasal query or is a list of tokens corresponding to a free text query.
+Multi-word free text queries in an AND query are treated as AND queries on each word.
+
+:param query the query to be parsed
+:return a list of lists corresponding to the parsed query, or an empty list if query is an empty string
+"""
+
+
 def parse_query(query):
-    """
-    Parses the query and returns a list of lists corresponding to the parsed query.
-
-    The number of items in the outer list correspond to the number of queries separated by AND. The inner list either
-    contains a parsed phrase corresponding to a phrasal query or is a list of tokens corresponding to a free text query.
-    Multi-word free text queries in an AND query are treated as AND queries on each word.
-
-    :param query the query to be parsed
-    :return a list of lists corresponding to the parsed query, or an empty list if query is an empty string
-    """
     # delimit query by AND
     split_query = [subquery.strip() for subquery in query.split("AND")]
 
@@ -189,12 +196,12 @@ def parse_query(query):
     for subquery in split_query:
         # ignores for empty query
         if not subquery:
-            print("found empty query, returning...") # for debugging
+            print("found empty query, returning...")  # for debugging
             continue
 
         # check for phrasal query
         if subquery[0] == "\"":
-            print("parsed a phrasal query, evaluating...") # for debugging
+            print("parsed a phrasal query, evaluating...")  # for debugging
             parsed_phrasal_query = parse_phrasal_query(subquery)  # returns a list
             parsed_query.append(parsed_phrasal_query)
         else:  # subquery is either single word free text query or multi-word free text query
@@ -208,18 +215,18 @@ def parse_query(query):
 
     return parsed_query
 
+"""
+Parses multiword free text query by tokenising, stemming, and case folding. Removes stop words from free text query.
+Performs query expansion using synonyms obtained from wordnet if toggled.
+
+:param query the multiword free text query to be parsed
+:return a list containing individual parsed tokens from the multiword query
+"""
 
 def parse_multiword_free_text_query(query):
-    """
-    Parses multiword free text query by tokenising, stemming, and case folding. Removes stop words from free text query.
-    Performs query expansion using synonyms obtained from wordnet if toggled.
-
-    :param query the multiword free text query to be parsed
-    :return a list containing individual parsed tokens from the multiword query
-    """
     tokens = query.split(" ")  # split query into individual words
 
-    tokens_without_stopwords = [token for token in tokens if not token in stop_words] # stop word removal
+    tokens_without_stopwords = [token for token in tokens if token not in stop_words]  # stop word removal
     # only remove stop words if free text query contains terms other than stopwords
     # this still allows results for multiword free text search for queries such as 'you are the'
     if tokens_without_stopwords:
@@ -227,14 +234,14 @@ def parse_multiword_free_text_query(query):
 
     return tokens
 
+"""
+Parse phrasal query by tokenizing, stemming, rejoining and striping off quotation marks
+
+:param query the phrasal query to be parsed
+:return a list containing the parsed phrasal query
+"""
 
 def parse_phrasal_query(query):
-    """
-    Parse phrasal query by tokenizing, stemming, rejoining and striping off quotation marks
-
-    :param query the phrasal query to be parsed
-    :return a list containing the parsed phrasal query
-    """
     query = query.strip('"')  # remove quotation marks
     tokens = query.split(" ")  # split query into individual words
     stemmed_tokens = [stemmer.stem(token.lower()) for token in tokens]
@@ -387,11 +394,12 @@ Return normalised tf-idf score for given query in ltc scheme.
 :return query vector containing dictionary token as key and normalised w_tq of token as value
 """
 
+
 def find_threshold(values):
     medians = []
     start = 0
-    end = len(values) - 1 # last index
-    interval = end // no_of_quantiles # floor division
+    end = len(values) - 1  # last index
+    interval = end // no_of_quantiles  # floor division
     while (start < end):
         stop = start + interval
         medians.append(find_median(values[start:stop]))
@@ -400,17 +408,18 @@ def find_threshold(values):
     threshold = sum(medians) / len(medians)
     return threshold
 
+
 def find_median(values):
     """
     Returns median of list of values. List is sorted in descending order.
     """
-    n = len(values) # length of list
+    n = len(values)  # length of list
     if n % 2 == 0:
-        median1 = values[n//2]
-        median2 = values[n//2 - 1]
-        median = (median1 + median2)/2
+        median1 = values[n // 2]
+        median2 = values[n // 2 - 1]
+        median = (median1 + median2) / 2
     else:
-        median = values[n//2]
+        median = values[n // 2]
 
     return median
 
@@ -530,10 +539,10 @@ def boolean_search(query, dictionary, postings_file, doc_lengths):
             # demands exact matches
             if subquery not in dictionary:
                 return []
-            
+
             # a single word
             postings = get_postings([subquery], dictionary, postings_file)
-            temp_results = postings[subquery] # already checked subquery is in dictionary, so temp_results is not empty
+            temp_results = postings[subquery]  # already checked subquery is in dictionary, so temp_results is not empty
 
         # merge two lists only if subquery is not the first subquery in query
         if i != 0:
@@ -653,4 +662,3 @@ def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengt
         return rank_phrasal_by_tf(results, doc_lengths)
 
     return list(results.keys())
-
