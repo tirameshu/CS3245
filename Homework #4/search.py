@@ -32,6 +32,9 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         trimmed_documents = pickle.load(dict) # key - doc_id, value - list of 100 tokens with highest weighted tf.idf
         metadata = pickle.load(dict) # key - doc_id, value - [title, year, court]
 
+    print("size of trimmed documents[0]")
+    print(str(len(list(trimmed_documents.items())[0][1])))
+
     with open(queries_file, 'r') as query_file, open(results_file, 'w') as result_file:
         query_content = query_file.read().splitlines()
 
@@ -78,6 +81,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         if is_free_text_query and rocchio_toggle:
             print("performing pseudo-relevance feedback with the Rocchio algorithm...")  # for debugging
             tokens = parsed_query[0] # 1d array of individual tokens from parsed_query
+
             query_vector = build_query_vector(tokens, dictionary, len(doc_lengths))
             print("query vector in search.py")
             print(list(query_vector.items())[:20])

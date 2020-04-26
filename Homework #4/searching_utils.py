@@ -346,6 +346,7 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
 
     # build query_vector with key: token, value: normalised w_tq of token
     N = len(doc_lengths)  # N is the total number of documents in the corpus
+
     query_vector = build_query_vector(query, dictionary, N)
 
     # calculate scores with key: doc_id, value: cosine score of document corresponding to doc_id
@@ -386,6 +387,9 @@ def build_query_vector(query, dictionary, N):
     w_tq_running_total = 0  # for calculating query length
     for token in query_vector:
         # get df
+
+        if token not in dictionary:
+            print("token {token} not in dictionary!".format(token=token))
         df = dictionary[token][0] if token in dictionary else 0
 
         # calculate idf
