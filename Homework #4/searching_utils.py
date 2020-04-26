@@ -14,6 +14,38 @@ stemmer = PorterStemmer()
 stop_words = set(stopwords.words('english')) # set stop words to those of English language
 no_of_quantiles = 100  # for determining threshold for cosine scoring - by default, use percentiles
 
+def get_courts():
+    most_impt_courts = []
+    less_impt_courts = []
+
+    with open("Notes about Court Hierarchy.txt", 'r') as court_hierarchy:
+        most_impt_flag = False
+        less_impt_flag = False
+        for line in court_hierarchy:
+            line = line.strip()
+            if line == "The rest":
+                break
+            elif line == "Most important":
+                most_impt_flag = True
+                continue
+            elif line == "?Important?":
+                less_impt_flag = True
+                continue
+
+            if most_impt_flag:
+                if not line.strip():  # empty line, end of most impt courts
+                    most_impt_flag = False
+                else:  # still in most impt courts
+                    most_impt_courts.append(line.strip())
+
+            if less_impt_flag:
+                if not line.strip():  # empty line, end of most impt courts
+                    less_impt_flag = False
+                else:  # still in most impt courts
+                    less_impt_courts.append(line.strip())
+
+    return most_impt_courts, less_impt_courts
+
 """
 Sorts docIDs by whether any part of the query is in their title.
 
@@ -25,14 +57,17 @@ Sorts docIDs by whether any part of the query is in their title.
 :return sorted docIDs according to param sequence.
 """
 def sort_results_by_metadata(results, metadata, query_tokens):
+    most_impt_courts, less_impt_courts = get_courts()
+
     doc_with_metadata = {} # Python3.7 onwards this preserves insertion order
 
     for docID in results:
         if docID not in doc_with_metadata: # prevents duplicate results
             title, year, court = metadata[docID]
+            query_in_title = 0
+            court_score = 0
 
             # if title contains query, give it a 1 and later sort in reverse order
-            query_in_title = 0
             for token in query_tokens:
                 if token in title:
                     # there are mostly no stopwords in free text query,
@@ -40,6 +75,13 @@ def sort_results_by_metadata(results, metadata, query_tokens):
                     # and for boolean searches, if stopwords exist, they
                     query_in_title = +1
 
+            # if court is most impt, give score 2; less impt give score 1, others 0
+            if court in most_impt_courts:
+                court_score = 2
+            elif court in less_impt_courts:
+                court_score = 1
+
+            doc_with_metadata[docID] = [query_in_title, year, court_score]
 
     doc_with_metadata = list(doc_with_metadata.items())
     doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
