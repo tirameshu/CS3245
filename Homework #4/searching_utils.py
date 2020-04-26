@@ -232,11 +232,7 @@ def parse_multiword_free_text_query(query):
     return tokens
 
 """
-<<<<<<< HEAD
-Parse phrasal query by tokenizing, stemming, rejoining and striping off quotation marks
-=======
 Parses phrasal query by tokenizing, stemming, rejoining and striping off quotation marks
->>>>>>> 87a3c6bb0474acc22ba557955aecd307765931ad
 
 :param query the phrasal query to be parsed
 :return a list containing the parsed phrasal query

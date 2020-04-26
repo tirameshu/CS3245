@@ -152,6 +152,7 @@ vector space model, documentation (readme, bonus, code-level).
 7. query_refinement.py
 8. Notes about Court Hierarchy.txt
 9. README.txt
+10. Bonus.docx
 
 == Statement of individual work ==
 
