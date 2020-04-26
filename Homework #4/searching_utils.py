@@ -260,7 +260,7 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
 Return normalised tf-idf score for given query in ltc scheme.
 
 :param query the query from which query vector is to be built
-:param dictionary the dictionary of terms saved to disk
+:param dictionary the dictionary of terms saved to disk, { token: (df, pointer) }
 :param N the number of documents in the corpus
 :return query vector containing dictionary token as key and normalised w_tq of token as value
 """
