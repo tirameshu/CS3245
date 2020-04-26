@@ -10,15 +10,12 @@ def document_vectors(documents, dictionary):
     doc_vectors = {}
     N = len(documents)
     for docID in documents:
-        print(docID)
         doc_vectors[docID] = {}
         content = documents[docID]
 
         content_vector = build_query_vector(content, dictionary, N)
 
         doc_vectors[docID] = content_vector
-
-        i += 1
 
     return doc_vectors
 
@@ -79,25 +76,19 @@ def rocchio(query_vector, top_k, dictionary, postings_file, doc_lengths, documen
         else:
             new_query_vector[token] = alpha * query_vector[token] + beta * centroid[token]
 
+    print("size of new query vector: {n}".format(n=len(new_query_vector)))
+    print("new query vector:")
+    print(list(new_query_vector.items())[:20])
+
     postings = get_postings(new_query_vector, dictionary, postings_file) # tf-idf of these terms of all documents
+
+    print("size of postings: {n}".format(n=len(postings)))
 
     scores = calculate_cosine_scores(new_query_vector, postings, doc_lengths)
 
     sorted_scores = sorted(scores.items(), key=lambda x: x[1]) # x[1] is the score
 
+    print("scores:")
+    print(sorted_scores[:20])
+
     return list(map(lambda x: x[0], sorted_scores)) # list of docIDs
-
-"""
-Assumes top-k searches are relevant, and evaluates relevance feedback accordingly.
-:param dictionary: to get df
-:param postings_file: to get tf
-"""
-def blind_relevance_feedback(top_k, dictionary, postings_file, doc_lengths):
-    # of all the common terms in these docs, find their tf-idf and take the top 20-30
-
-    # find intersection of all words in top_k docs
-    # filter by a certain threshold for tf-idf
-    # add these words to the query
-    # run search agn
-
-    pass
