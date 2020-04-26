@@ -13,8 +13,6 @@ stemming.
 
 :param data data string to be tokenized
 """
-
-
 def collect_tokens(data):
     tokens = []
     stemmer = PorterStemmer()  # use Porter stemmer for stemming
@@ -41,8 +39,6 @@ all unique terms in this document along with their term frequencies.
 :param doc_id the document ID of the document the tokens are found in
 :return a dictionary consisting of unique terms and their term frequencies for calculating document length
 """
-
-
 def process_tokens(index, tokens, doc_id):
     term_frequencies = defaultdict(int)  # to store document vector and calculate doc_length
 
@@ -69,8 +65,6 @@ def process_tokens(index, tokens, doc_id):
 """
 Calculates document length given a list of term frequencies
 """
-
-
 def calculate_doc_length(tfs):
     running_sum = 0
     for tf in tfs:
@@ -81,15 +75,13 @@ def calculate_doc_length(tfs):
 """
 Writes postings and dictionary to disk
 
-:param index the index from which postings and dictionary are to be extracted
-:param doc_lengths dictionary of doc_lengths to be written to dictionary file in disk
-:param documents dictionary of top tokens from each document to be written to dictionary file in disk
-:param metadata dictionary of metadata to be written to dictionary file in disk
-:param out_dict target output file to write dictionary to
-:param out_postings target output file to write postings to
+:param index: the index from which postings and dictionary are to be extracted
+:param doc_lengths: dictionary of doc_lengths to be written to dictionary file in disk
+:param documents: dictionary of top tokens from each document to be written to dictionary file in disk
+:param metadata: dictionary of metadata to be written to dictionary file in disk
+:param out_dict: target output file to write dictionary to
+:param out_postings: target output file to write postings to
 """
-
-
 def write_to_disk(index, doc_lengths, documents, metadata, out_dict, out_postings):
     print("writing to disk")  # for debugging
 

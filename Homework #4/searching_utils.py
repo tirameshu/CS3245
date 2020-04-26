@@ -9,7 +9,10 @@ stemmer = PorterStemmer()
 stop_words = set(stopwords.words('english'))  # set stop words to those of English language
 no_of_quantiles = 100  # for determining threshold for cosine scoring - by default, use percentiles
 
-
+"""
+Returns the tiered courts as provided in Notes about Court Hierarchy.
+To help rank documents by which court the case was in.
+"""
 def get_courts():
     most_impt_courts = []
     less_impt_courts = []
@@ -44,17 +47,16 @@ def get_courts():
 
 
 """
-Sorts docIDs by whether any part of the query is in their title.
+Sorts relevant docIDs by whether any part of the query is in their title.
 
-:param results: a list of docIDs
-:param first: first metadata field to sort by
-:param second: as above
-:param third: as above
+:param results: a list of relevant docIDs as returned by preliminary searches
+:param metadata: dictionary of metadata of all documents.
+:param query_tokens: list of individual tokens in query,
+for phrasal search, each phrase is broken up into individual tokens
+here too.
 
 :return sorted docIDs according to param sequence.
 """
-
-
 def sort_results_by_metadata(results, metadata, query_tokens):
     most_impt_courts, less_impt_courts = get_courts()
 
@@ -110,13 +112,13 @@ def sort_results_by_metadata(results, metadata, query_tokens):
 
 
 """
-Rank phrasal search by tf of the entire phrase.
+Rank phrasal search results by tf of the entire phrase.
+We decided to use tf directly as phrasal search results are only compared against
+phrasal search results (same scale of comparison), and both tf and lg(tf) are increasing functions.
 
 :param intermediate_result: a dictionary of {doc_id: [positions]}, passed from phrasal_search
 :param doc_lengths: a dictionary of { doc_id: doc_length }, to normalise
 """
-
-
 def rank_phrasal_by_tf(intermediate_result, doc_lengths):
     doc_to_tf = {}  # doc_id: normalised tf
     for doc_id in intermediate_result:
@@ -135,8 +137,6 @@ Ranking by weighted tf-idf of the query taken as free text.
 :param postings_file: the file containing postings written in disk
 :param doc_lengths: a dictionary of { doc_id: doc_length }, to normalise
 """
-
-
 def rank_boolean_by_tfidf(query_tokens, relevant_doc_ids, dictionary, postings_file, doc_lengths):
     filtered_postings = {}  # to hold postings filtered based on documents found in relevant_doc_ids
 
@@ -182,8 +182,6 @@ Multi-word free text queries in an AND query are treated as AND queries on each 
 :param query the query to be parsed
 :return a list of lists corresponding to the parsed query, or an empty list if query is an empty string
 """
-
-
 def parse_query(query):
     # delimit query by AND
     split_query = [subquery.strip() for subquery in query.split("AND")]
@@ -222,7 +220,6 @@ Performs query expansion using synonyms obtained from wordnet if toggled.
 :param query the multiword free text query to be parsed
 :return a list containing individual parsed tokens from the multiword query
 """
-
 def parse_multiword_free_text_query(query):
     tokens = query.split(" ")  # split query into individual words
 
@@ -235,12 +232,15 @@ def parse_multiword_free_text_query(query):
     return tokens
 
 """
+<<<<<<< HEAD
 Parse phrasal query by tokenizing, stemming, rejoining and striping off quotation marks
+=======
+Parses phrasal query by tokenizing, stemming, rejoining and striping off quotation marks
+>>>>>>> 87a3c6bb0474acc22ba557955aecd307765931ad
 
 :param query the phrasal query to be parsed
 :return a list containing the parsed phrasal query
 """
-
 def parse_phrasal_query(query):
     query = query.strip('"')  # remove quotation marks
     tokens = query.split(" ")  # split query into individual words
@@ -263,8 +263,6 @@ treated as one-word free text queries and searched using VSM.
 
 :return a list of relevant documents depending on the query
 """
-
-
 def evaluate_query(query, dictionary, doc_lengths, postings_file):
     # check for empty query
     if not query:
@@ -322,17 +320,16 @@ def evaluate_query(query, dictionary, doc_lengths, postings_file):
             results = vsm_search(unique_stemmed_tokens, dictionary, postings_file, doc_lengths)
             return results
 
+"""
+Returns postings of each token in the given query.
 
+:param query: a list containing query tokens
+:param dictionary the dictionary of terms saved to disk
+:param postings_file the file containing postings written in disk
+:return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
+value of an inner dictionary with doc_id as key and list of positional indices as value.
+"""
 def get_postings(query, dictionary, postings_file):
-    """
-    Returns postings of each token in the given query.
-
-    :param query: a list containing query tokens
-    :param dictionary the dictionary of terms saved to disk
-    :param postings_file the file containing postings written in disk
-    :return a dictionary of dictionaries containing postings information. The outer dictionary has token as key and
-    value of an inner dictionary with doc_id as key and list of positional indices as value.
-    """
     postings = {}
 
     with open(postings_file, 'rb') as post:
@@ -350,13 +347,13 @@ def get_postings(query, dictionary, postings_file):
 # METHODS FOR VSM SEARCH FOR FREE TEXT QUERIES #
 
 """
+Assigns cosine similarity scores for free-text query vectors and document vectors.
+
 :param query: list of stemmed query tokens
 :param dictionary: { token: (df, pointer) }
 :param postings_file: postings.txt
 :param doc_lengths: a dictionary of { doc_id: doc_length }
 """
-
-
 def vsm_search(query, dictionary, postings_file, doc_lengths):
     print("running vsm search on tokens : ", end='')
     print(query)  # for debugging
@@ -378,8 +375,8 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
     score_values = [entry[1] for entry in sorted_scores]
     threshold_score = find_threshold(score_values)
 
-    print(scores[6807771])
-    print(threshold_score)
+    # print(scores[6807771])
+    # print(threshold_score)
 
     results = [entry[0] for entry in sorted_scores if entry[1] > threshold_score]
     return results
@@ -388,13 +385,11 @@ def vsm_search(query, dictionary, postings_file, doc_lengths):
 """
 Return normalised tf-idf score for given query in ltc scheme.
 
-:param query the query from which query vector is to be built
-:param dictionary the dictionary of terms saved to disk, { token: (df, pointer) }
-:param N the number of documents in the corpus
-:return query vector containing dictionary token as key and normalised w_tq of token as value
+:param query: the query from which query vector is to be built
+:param dictionary: the dictionary of terms saved to disk, { token: (df, pointer) }
+:param N: the number of documents in the corpus
+:return query: vector containing dictionary token as key and normalised w_tq of token as value
 """
-
-
 def find_threshold(values):
     medians = []
     start = 0
@@ -408,12 +403,11 @@ def find_threshold(values):
     threshold = sum(medians) / len(medians)
     return threshold
 
-
+"""
+Returns median of list of values. List is sorted in descending order.
+"""
 def find_median(values):
-    """
-    Returns median of list of values. List is sorted in descending order.
-    """
-    n = len(values)  # length of list
+    n = len(values) # length of list
     if n % 2 == 0:
         median1 = values[n // 2]
         median2 = values[n // 2 - 1]
@@ -423,7 +417,14 @@ def find_median(values):
 
     return median
 
+"""
+Finds the normliased weighted tf-idf score for all tokens in query.
+tf here refers to frequency of token in the query itself.
 
+:param query: the query issued by user
+:param dictionary: { token: (df, pointer) }
+:param N: number of documents in total
+"""
 def build_query_vector(query, dictionary, N):
     query_vector = defaultdict(float)  # key: token, value: normalised w_tq of token
 
@@ -462,10 +463,9 @@ def build_query_vector(query, dictionary, N):
 
 """
 Return normalised tf-idf score for given query in ltc scheme in the form of a dictionary.
-:return dictionary containing document IDs as key and cosine scores as values
+
+:return scores: dictionary containing document IDs as key and cosine scores as values
 """
-
-
 def calculate_cosine_scores(query_vector, postings, doc_lengths):
     scores = {}  # key: doc_id, value: cosine score
     for token in postings:
@@ -499,8 +499,6 @@ Finds intersection of two iterables of doc_ids, sorted in asc order
 
 :return: list of common doc_ids
 """
-
-
 def and_merge(lst1, lst2):
     return sorted(list(set(lst1).intersection(set(lst2))))
 
@@ -513,8 +511,6 @@ Runs boolean search by calling AND merge function on each subquery.
 :param postings_file: postings.txt
 :return result: list of doc_ids
 """
-
-
 def boolean_search(query, dictionary, postings_file, doc_lengths):
     print("running boolean AND search on tokens : ", end='')
     print(query)  # for debugging
@@ -570,11 +566,13 @@ def boolean_search(query, dictionary, postings_file, doc_lengths):
 """
 Assumes common document for two tokens have been found, and the corresponding postings lists are being used.
 
+Takes two list of positions of two tokens in the same document, and checks if the positions of the tokens
+suggest that they are consecutive in the document.
+The second token must come immediately after the first for them to be considered consecutive.
+
 :param positions1: a list of positions for token1 in common doc
 :param positions2: a list of positions for token2 in common doc
 """
-
-
 def get_consecutives(positions1, positions2):
     result = []
     i, j = 0, 0
@@ -605,6 +603,8 @@ def get_consecutives(positions1, positions2):
 """
 Takes a phrase and does two-way checking of positions at a time.
 Handles the case where there is only 1 word in phrase.
+If any part of the phrase is not in dictionary, an empty list is returned
+as we assume the user wants an exact match.
 
 :param tokenised_phrasal_query: list of stemmed query tokens
 :param dictionary: { token: (df, pointer) }
@@ -613,8 +613,6 @@ Handles the case where there is only 1 word in phrase.
 
 :return result: list of doc_ids
 """
-
-
 def phrasal_search(tokenised_phrasal_query, dictionary, postings_file, doc_lengths, is_boolean):
     print("running phrasal search on tokens : ", end='')
     print(tokenised_phrasal_query)  # for debugging

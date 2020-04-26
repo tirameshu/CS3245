@@ -124,6 +124,16 @@ assignment.
     We would require more expert relevance assessments and further refinement of these techniques before we can be
     confident of toggling them on.
 
+7. Ranking by metadata
+    7.1 The top decile of retrieved documents are further ranked based on metadata.
+    7.2 These top documents are sorted in the following order:
+        7.2.1 If part of the query is in the title, then the document is ranked higher.
+        7.2.2 Cases from a higher court are ranked earlier. The court tiers are based on the provided court hierarchy
+        information.
+        7.2.3 More recent cases are ranked higher than less recent cases, based on the year of the case.
+    7.3 This metadata ranking preserves the original score ranking of the retrieved documents when there are ties by
+    leveraging Python's built in stable-sort mechanism.
+
 == Work Allocation ==
 Both contributed more or less equally to the assignment as we discussed and debugged our code together via lengthy zoom
 sessions. However, we primarily worked the following key features:
@@ -133,6 +143,15 @@ A0158850X - Query expansion using synonyms from Wordnet, query parsing, free tex
 vector space model, documentation (readme, bonus, code-level).
 
 == Files included with this submission ==
+1. index.py
+2. search.py
+3. dictionary.txt
+4. postings.txt
+5. indexing_utils.py
+6. searching_utils.py
+7. query_refinement.py
+8. Notes about Court Hierarchy.txt
+9. README.txt
 
 == Statement of individual work ==
 
@@ -160,6 +179,6 @@ Available - https://nlp.stanford.edu/IR-book/html/htmledition/the-rocchio71-algo
 == Acknowledgements ==
 We'd like to thank:
 1. Two friends from SoC who had taken this module in a previous semester, who shared with us their reasoning behind
-their attempt at this assginment. This discussion helped us improve upon their implementation of query expansion.
+their attempt at this assignment. This discussion helped us improve upon their implementation of query expansion.
 2. A friend from law school who told us how she performs legal case retrieval, thus allowing us to refine our
 ranking of results by considering metadata such as title, year, and court.
