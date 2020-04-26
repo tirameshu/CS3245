@@ -15,7 +15,7 @@ Sorts docIDs by whether any part of the query is in their title.
 
 :return sorted docIDs according to param sequence.
 """
-def sort_results_by_metadata(results, metadata, flattened_query):
+def sort_results_by_metadata(results, metadata, query_tokens):
     doc_with_metadata = {} # Python3.7 onwards this preserves insertion order
 
     for docID in results:
@@ -24,7 +24,13 @@ def sort_results_by_metadata(results, metadata, flattened_query):
 
             # if title contains query, give it a 1 and later sort in reverse order
             query_in_title = 0
-            for query_token in flattened_query:
+            for token in query_tokens:
+                if token in title:
+                    # there are mostly no stopwords in free text query,
+                    # and for phrasal search we assume all words matter,
+                    # and for boolean searches, if stopwords exist, they
+                    query_in_title = +1
+
 
     doc_with_metadata = list(doc_with_metadata.items())
     doc_with_metadata.sort(key=lambda x: x[1][0], reverse=True) # first by title
