@@ -7,9 +7,8 @@ from query_refinement import rocchio, expand_query
 from searching_utils import parse_query, evaluate_query, build_query_vector, sort_results_by_metadata
 
 query_expansion_toggle = False  # expand query using Wordnet synonyms for free text queries only
-rocchio_toggle = True  # use Rocchio algorithm for pseudo-relevance feedback
+rocchio_toggle = False  # use Rocchio algorithm for pseudo-relevance feedback
 k = 50  # top k documents from initial set of retrieved results considered 'relevant' for pseudo-relevance feedback
-
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q query-file -o output-file-of-results")
@@ -36,8 +35,8 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         trimmed_documents = pickle.load(dict)  # key - doc_id, value - list of 100 tokens with highest weighted tf.idf
         metadata = pickle.load(dict)  # key - doc_id, value - [title, year, court]
 
-    print("size of trimmed documents[0]")
-    print(str(len(list(trimmed_documents.items())[0][1])))
+    # print("size of trimmed documents[0]")
+    # print(str(len(list(trimmed_documents.items())[0][1])))
 
     with open(queries_file, 'r') as query_file, open(results_file, 'w') as result_file:
         query_content = query_file.read().splitlines()
